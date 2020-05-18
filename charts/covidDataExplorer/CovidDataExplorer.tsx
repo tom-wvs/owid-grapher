@@ -66,6 +66,7 @@ import {
 } from "./CovidConstants"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { ColorScheme, ColorSchemes } from "charts/ColorSchemes"
+import ReactDOMServer from "react-dom/server"
 
 @observer
 export class CovidDataExplorer extends React.Component<{
@@ -908,4 +909,46 @@ export class CovidDataExplorer extends React.Component<{
             queryStr: window.location.search
         }
     )
+}
+
+// Todo: if I have the data as a param, then the baked and runtime could get out of date.
+// If I don't have the data as a param, what's the point of server side baking?
+export function bakeCoronaDashboard(cheerio: CheerioStatic) {
+    cheerio(`*[${coronaWordpressElementAttribute}]`).each(async (_, el) => {
+        const iframe = cheerio(el)
+        const params = iframe.attr("src").split("?")[1] || ""
+        const div = `<div data-params="${params}" ${coronaWordpressElementAttribute} class="wp-block-full-content-width" style="${el.attribs.style}" loading="lazy"></div>`
+        const typedData = await fetchAndParseData()
+        const updated = await fetchText(covidLastUpdatedPath)
+        const startingParams = new CovidQueryParams(params)
+        const rendered = ReactDOMServer.renderToString(
+            <CovidDataExplorer
+                data={typedData}
+                updated={updated}
+                params={startingParams}
+            />
+        )
+        iframe.replaceWith(div)
+    })
+}
+
+export async function runCoronaDashboard() {
+    const element = document.querySelector(
+        `*[${coronaWordpressElementAttribute}]`
+    )
+    if (element) {
+        const typedData = await fetchAndParseData()
+        const updated = await fetchText(covidLastUpdatedPath)
+        const startingParams = new CovidQueryParams(
+            element.getAttribute("data-params")!
+        )
+        ReactDOM.hydrate(
+            <CovidDataExplorer
+                data={typedData}
+                updated={updated}
+                params={startingParams}
+            />,
+            element
+        )
+    }
 }
