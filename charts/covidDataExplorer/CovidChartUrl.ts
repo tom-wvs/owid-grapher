@@ -3,7 +3,12 @@ import { ObservableUrl } from "../UrlBinding"
 import { ChartUrl, EntityUrlBuilder } from "../ChartUrl"
 import { QueryParams, strToQueryParams } from "utils/client/url"
 import { omit } from "../Util"
-import { PerCapita, AlignedOption, SmoothingOption } from "./CovidTypes"
+import {
+    PerCapita,
+    AlignedOption,
+    SmoothingOption,
+    CovidRowColumnName
+} from "./CovidTypes"
 
 export class CovidQueryParams {
     @observable testsMetric: boolean = false
@@ -13,6 +18,7 @@ export class CovidQueryParams {
     @observable dailyFreq: boolean = false
     @observable perCapita: PerCapita = false
     @observable aligned: AlignedOption = false
+    @observable colorColumn: CovidRowColumnName = "continent"
     @observable smoothing: SmoothingOption = 0
     @observable selectedCountryCodes: Set<string> = new Set()
 
@@ -30,6 +36,8 @@ export class CovidQueryParams {
         if (params.dailyFreq) this.dailyFreq = true
         if (params.perCapita) this.perCapita = true
         if (params.aligned) this.aligned = true
+        if (params.colorColumn)
+            this.colorColumn = params.colorColumn as CovidRowColumnName
         if (params.smoothing)
             this.smoothing = parseInt(params.smoothing) as SmoothingOption
         if (params.country) this.setCountrySelectionFromChartUrl(params.country)
@@ -60,6 +68,8 @@ export class CovidQueryParams {
         params.totalFreq = this.totalFreq ? true : undefined
         params.aligned = this.aligned ? true : undefined
         params.perCapita = this.perCapita ? true : undefined
+        params.colorColumn =
+            this.colorColumn === "continent" ? undefined : this.colorColumn
         params.smoothing = this.smoothing
         params.country = EntityUrlBuilder.entitiesToQueryParams(
             Array.from(this.selectedCountryCodes)

@@ -36,11 +36,14 @@ import {
     DeathsMetricOption,
     MetricKind,
     ParsedCovidRow,
-    CountryOption
+    CountryOption,
+    CovidRowColumnName
 } from "./CovidTypes"
 import {
-    RadioOption as InputOption,
-    CovidRadioControl as CovidInputControl
+    RadioOption,
+    CovidRadioControl,
+    CovidDropdownControl,
+    DropdownOption
 } from "./CovidRadioControl"
 import { CountryPicker } from "./CovidCountryPicker"
 import { CovidQueryParams, CovidUrl } from "./CovidChartUrl"
@@ -55,7 +58,10 @@ import {
     covidDataPath,
     covidLastUpdatedPath,
     getTrajectoryOptions,
-    getLeastUsedColor
+    getLeastUsedColor,
+    makeColorVariable,
+    colorColumnOptions,
+    variablePrefixes
 } from "./CovidDataUtils"
 import { scaleLinear } from "d3-scale"
 import { BAKED_BASE_URL } from "settings"
@@ -68,6 +74,7 @@ import {
 } from "./CovidConstants"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { ColorScheme, ColorSchemes } from "charts/ColorSchemes"
+import { OwidVariable } from "charts/owidData/OwidVariable"
 
 const abSeed = Math.random()
 
@@ -131,7 +138,7 @@ export class CovidDataExplorer extends React.Component<{
     }
 
     private get metricPicker() {
-        const options: InputOption[] = [
+        const options: RadioOption[] = [
             {
                 label: "Confirmed Deaths",
                 checked: this.props.params.deathsMetric,
@@ -170,16 +177,16 @@ export class CovidDataExplorer extends React.Component<{
             }
         ]
         return (
-            <CovidInputControl
+            <CovidRadioControl
                 name="metric"
                 options={options}
                 isCheckbox={false}
-            ></CovidInputControl>
+            ></CovidRadioControl>
         )
     }
 
     private get frequencyPicker() {
-        const options: InputOption[] = [
+        const options: RadioOption[] = [
             {
                 label: "Total",
                 checked: this.props.params.totalFreq,
@@ -202,16 +209,16 @@ export class CovidDataExplorer extends React.Component<{
             }
         ]
         return (
-            <CovidInputControl
+            <CovidRadioControl
                 name="frequency"
                 options={options}
                 isCheckbox={false}
-            ></CovidInputControl>
+            ></CovidRadioControl>
         )
     }
 
     @computed private get perCapitaPicker() {
-        const options: InputOption[] = [
+        const options: RadioOption[] = [
             {
                 label: capitalize(this.perCapitaOptions[this.perCapitaDivisor]),
                 checked: this.props.params.perCapita,
@@ -222,16 +229,16 @@ export class CovidDataExplorer extends React.Component<{
             }
         ]
         return (
-            <CovidInputControl
+            <CovidRadioControl
                 name="count"
                 isCheckbox={true}
                 options={options}
-            ></CovidInputControl>
+            ></CovidRadioControl>
         )
     }
 
     private get alignedPicker() {
-        const options: InputOption[] = [
+        const options: RadioOption[] = [
             {
                 label: "Align outbreaks",
                 checked: this.props.params.aligned,
@@ -242,17 +249,17 @@ export class CovidDataExplorer extends React.Component<{
             }
         ]
         return (
-            <CovidInputControl
+            <CovidRadioControl
                 name="timeline"
                 isCheckbox={true}
                 options={options}
                 comment={this.daysSinceOption.title}
-            ></CovidInputControl>
+            ></CovidRadioControl>
         )
     }
 
     private get smoothingPicker() {
-        const options: InputOption[] = [
+        const options: RadioOption[] = [
             {
                 label: "No smoothing",
                 checked: this.props.params.smoothing === 0,
@@ -279,11 +286,35 @@ export class CovidDataExplorer extends React.Component<{
             }
         ]
         return (
-            <CovidInputControl
+            <CovidRadioControl
                 name="smoothing"
                 options={options}
-            ></CovidInputControl>
+            ></CovidRadioControl>
         )
+    }
+
+    private get colorPicker() {
+        const options: DropdownOption[] = Object.values(colorColumnOptions).map(
+            option => {
+                return {
+                    name: option.title,
+                    value: option.title
+                }
+            }
+        )
+
+        return (
+            <CovidDropdownControl
+                name="color"
+                options={options}
+                onChange={this.setColorOption}
+            />
+        )
+    }
+
+    @action.bound setColorOption(value: string) {
+        this.props.params.colorColumn = value as CovidRowColumnName
+        this.updateChart()
     }
 
     @computed get areMultipleCountriesSelected() {
@@ -412,6 +443,7 @@ export class CovidDataExplorer extends React.Component<{
                     {this.perCapitaPicker}
                     {this.alignedPicker}
                     {this.smoothingPicker}
+                    {this.colorPicker}
                     {mobileDoneButton}
                 </div>
                 <CountryPicker
@@ -683,7 +715,7 @@ export class CovidDataExplorer extends React.Component<{
 
     @computed get daysSinceVariableId() {
         const sourceId = this.yVariableIndices[0]
-        const idParts = [456, sourceId]
+        const idParts = [variablePrefixes.daysSince, sourceId]
         const id = parseInt(idParts.join(""))
         if (!this.owidVariableSet.variables[id]) {
             this.owidVariableSet.variables[id] = daysSinceVariable(
@@ -705,13 +737,32 @@ export class CovidDataExplorer extends React.Component<{
     }
 
     @observable.struct owidVariableSet: OwidVariableSet = {
-        variables: {
-            123: continentsVariable(this.countryOptions)
-        },
+        variables: {},
         entityKey: this.entityKey
     }
 
-    private continentsVariableId = 123
+    @computed get colorKeyOrder() {
+        return this.binCache.get(this.colorVariableId)
+    }
+
+    private binCache: Map<number, string[]> = new Map()
+
+    @computed get colorVariableId() {
+        const columnName = this.props.params.colorColumn
+        const id = parseInt(
+            [
+                variablePrefixes.colors,
+                Object.keys(colorColumnOptions).indexOf(columnName)
+            ].join("")
+        )
+        if (!this.owidVariableSet.variables[id]) {
+            const result = makeColorVariable(this.countryOptions, columnName)
+            this.owidVariableSet.variables[id] = result.variable as OwidVariable
+            this.binCache.set(id, result.binNames)
+        }
+
+        return id
+    }
 
     updateChart() {
         // Generating the new chart may take a second so render the Data Explorer controls immediately then
@@ -862,7 +913,8 @@ export class CovidDataExplorer extends React.Component<{
             },
             {
                 property: "color",
-                variableId: this.continentsVariableId,
+                variableId: this.colorVariableId,
+                colorKeyOrder: this.colorKeyOrder,
                 display: {}
             }
         ]

@@ -36,8 +36,15 @@ import { EntityDimensionKey } from "./EntityDimensionKey"
 // of a scatter plot
 export class ScatterTransform extends ChartTransform {
     @computed get colorKeys(): string[] {
-        const { colorDimension } = this
-        return colorDimension ? colorDimension.variable.categoricalValues : []
+        const colorKeys = this.colorDimension
+            ? this.colorDimension.variable.categoricalValues
+            : []
+        const colorDimension = this.chart.props.dimensions.find(
+            d => d.property === "color"
+        )
+        return colorDimension && colorDimension.colorKeyOrder
+            ? colorDimension.colorKeyOrder
+            : colorKeys
     }
 
     @computed get colors(): Colorizer {

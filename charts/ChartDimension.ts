@@ -10,6 +10,7 @@ export declare type dimensionProperty = "y" | "x" | "size" | "color"
 
 export class ChartDimension {
     @observable property!: dimensionProperty
+    @observable colorKeyOrder?: string[]
     @observable variableId!: number
     @observable display: OwidVariableDisplaySettings = {
         name: undefined,

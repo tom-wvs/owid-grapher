@@ -60,3 +60,35 @@ export class CovidRadioControl extends React.Component<{
         )
     }
 }
+
+export interface DropdownOption {
+    name: string
+    value: string
+}
+
+@observer
+export class CovidDropdownControl extends React.Component<{
+    name: string
+    options: DropdownOption[]
+    onChange: (value: string) => void
+}> {
+    @action.bound onChange(ev: React.ChangeEvent<HTMLSelectElement>) {
+        this.props.onChange(ev.currentTarget.value)
+    }
+
+    render() {
+        const { name } = this.props
+        return (
+            <div className={"CovidDataExplorerControl"}>
+                <div className="ControlHeader">{this.props.name}</div>
+                <select onChange={this.onChange}>
+                    {this.props.options.map((option, index) => (
+                        <option key={index} value={option.value}>
+                            {option.name}
+                        </option>
+                    ))}
+                </select>
+            </div>
+        )
+    }
+}

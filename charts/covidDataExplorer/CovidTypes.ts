@@ -28,7 +28,38 @@ export interface ParsedCovidRow {
     total_tests_per_thousand: number
     new_tests_per_thousand: number
     tests_units: string
+    stringency_index: number
+    population: number
+    population_density: number
+    median_age: number
+    aged_65_older: number
+    aged_70_older: number
+    gdp_per_capita: number
+    extreme_poverty: number
+    cvd_death_rate: number
+    diabetes_prevalence: number
+    female_smokers: number
+    male_smokers: number
+    handwashing_facilities: number
+    hospital_beds_per_100k: number
 }
+
+export declare type CovidRowColumnName =
+    | "continent"
+    | "stringency_index"
+    | "population"
+    | "population_density"
+    | "median_age"
+    | "aged_65_older"
+    | "aged_70_older"
+    | "gdp_per_capita"
+    | "extreme_poverty"
+    | "cvd_death_rate"
+    | "diabetes_prevalence"
+    | "female_smokers"
+    | "male_smokers"
+    | "handwashing_facilities"
+    | "hospital_beds_per_100k"
 
 export interface CountryOption {
     name: string
@@ -38,4 +69,17 @@ export interface CountryOption {
     population: number
     rows: ParsedCovidRow[]
     latestTotalTestsPerCase: number | undefined
+    stringency_index: number
+    population_density: number
+    median_age: number
+    aged_65_older: number
+    aged_70_older: number
+    gdp_per_capita: number
+    extreme_poverty: number
+    cvd_death_rate: number
+    diabetes_prevalence: number
+    female_smokers: number
+    male_smokers: number
+    handwashing_facilities: number
+    hospital_beds_per_100k: number
 }

@@ -13,11 +13,18 @@ import {
     minBy
 } from "charts/Util"
 import moment from "moment"
-import { ParsedCovidRow, MetricKind, CountryOption } from "./CovidTypes"
+import {
+    ParsedCovidRow,
+    MetricKind,
+    CountryOption,
+    CovidRowColumnName
+} from "./CovidTypes"
 import { OwidVariable } from "charts/owidData/OwidVariable"
 import { populationMap } from "./CovidPopulationMap"
 import { variablePartials } from "./CovidVariablePartials"
 import { csv } from "d3-fetch"
+import { bin } from "d3-array"
+import * as d3 from "d3"
 import { labelsByRegion, worldRegionByMapEntity } from "charts/WorldRegions"
 
 const keepStrings = new Set(`iso_code location date tests_units`.split(" "))
@@ -75,12 +82,42 @@ export const fetchAndParseData = async (): Promise<ParsedCovidRow[]> => {
 export const makeCountryOptions = (data: ParsedCovidRow[]): CountryOption[] => {
     const rowsByCountry = groupBy(data, "iso_code")
     return map(rowsByCountry, rows => {
-        const { location, iso_code } = rows[0]
+        const {
+            location,
+            iso_code,
+            stringency_index,
+            population_density,
+            median_age,
+            aged_65_older,
+            aged_70_older,
+            gdp_per_capita,
+            extreme_poverty,
+            cvd_death_rate,
+            population,
+            diabetes_prevalence,
+            female_smokers,
+            male_smokers,
+            handwashing_facilities,
+            hospital_beds_per_100k
+        } = rows[0]
         return {
             name: location,
             slug: location,
             code: iso_code,
-            population: populationMap[location],
+            stringency_index,
+            population_density,
+            median_age,
+            aged_65_older,
+            aged_70_older,
+            gdp_per_capita,
+            extreme_poverty,
+            cvd_death_rate,
+            diabetes_prevalence,
+            female_smokers,
+            male_smokers,
+            handwashing_facilities,
+            hospital_beds_per_100k,
+            population,
             continent: labelsByRegion[worldRegionByMapEntity[location]],
             latestTotalTestsPerCase: getLatestTotalTestsPerCase(rows),
             rows: rows
@@ -88,15 +125,95 @@ export const makeCountryOptions = (data: ParsedCovidRow[]): CountryOption[] => {
     })
 }
 
-export const continentsVariable = (countryOptions: CountryOption[]) => {
+export const colorColumnOptions = {
+    continent: {
+        title: "continent"
+    },
+    stringency_index: {
+        title: "stringency_index"
+    },
+    population: {
+        title: "population"
+    },
+    population_density: {
+        title: "population_density"
+    },
+    median_age: {
+        title: "median_age"
+    },
+    aged_65_older: {
+        title: "aged_65_older"
+    },
+    aged_70_older: {
+        title: "aged_70_older"
+    },
+    gdp_per_capita: {
+        title: "gdp_per_capita"
+    },
+    extreme_poverty: {
+        title: "extreme_poverty"
+    },
+    cvd_death_rate: {
+        title: "cvd_death_rate"
+    },
+    diabetes_prevalence: {
+        title: "diabetes_prevalence"
+    },
+    female_smokers: {
+        title: "female_smokers"
+    },
+    male_smokers: {
+        title: "male_smokers"
+    },
+    handwashing_facilities: {
+        title: "handwashing_facilities"
+    },
+    hospital_beds_per_100k: {
+        title: "hospital_beds_per_100k"
+    }
+}
+
+export const makeColorBins = (values: number[], binCount = 5) => {
+    const scale = d3
+        .scaleLinear()
+        .domain(d3.extent(values))
+        .nice()
+
+    return bin()
+        .domain(scale.domain())
+        .thresholds(binCount)(values)
+}
+
+export const makeColorVariable = (
+    countryOptions: CountryOption[],
+    columnName: CovidRowColumnName,
+    binCount = 5
+) => {
+    const values = countryOptions.map(
+        country => country[columnName]
+    ) as number[]
+    const valueMap = new Map<number, string>()
+    const bins = makeColorBins(values, binCount)
+    const binNames: string[] = []
+    bins.forEach((aBin: any) => {
+        const binName = aBin.x0 + "-" + aBin.x1
+        binNames.push(binName)
+        aBin.forEach((value: number) => {
+            valueMap.set(value, binName)
+        })
+    })
     const variable: Partial<OwidVariable> = {
         ...variablePartials.continents,
         years: countryOptions.map(country => 2020),
         entities: countryOptions.map((country, index) => index),
-        values: countryOptions.map(country => country.continent)
+        values: values.map(value => valueMap.get(value as number))
     }
 
-    return variable as OwidVariable
+    return {
+        bins,
+        variable,
+        binNames
+    }
 }
 
 export const daysSinceVariable = (
@@ -134,13 +251,21 @@ export const daysSinceVariable = (
     return variable as OwidVariable
 }
 
+// To ensure all generated variable IDs are unique any fn that generates an ID
+// should register a prefix here.
+export const variablePrefixes = {
+    covid: 1145,
+    daysSince: 456,
+    colors: 777
+}
+
 export const buildCovidVariableId = (
     name: MetricKind,
     perCapita: number,
     rollingAverage?: number,
     daily?: boolean
 ): number => {
-    const arbitraryStartingPrefix = 1145
+    const arbitraryStartingPrefix = variablePrefixes.covid
     const parts = [
         arbitraryStartingPrefix,
         name === "tests" ? 0 : name === "cases" ? 1 : 2,
