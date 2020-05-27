@@ -52,7 +52,6 @@ import {
     RowAccessor,
     buildCovidVariable,
     daysSinceVariable,
-    continentsVariable,
     buildCovidVariableId,
     makeCountryOptions,
     covidDataPath,
