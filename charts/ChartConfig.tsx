@@ -221,7 +221,7 @@ export class ChartConfigProps {
     @observable.ref entityTypePlural?: string = undefined
     @observable.ref hideTimeline?: true = undefined
     @observable.ref zoomToSelection?: true = undefined
-    @observable.ref filterSmallCountries?: true = undefined
+    @observable.ref minPopulationFilter?: number = undefined
 
     // Always show year in labels for bar charts
     @observable.ref showYearLabels?: boolean = undefined
@@ -359,9 +359,11 @@ export class ChartConfig {
 
     @computed get filters() {
         const filters: FilterPredicate[] = []
-        if (this.props.filterSmallCountries)
+        if (this.props.minPopulationFilter)
             filters.push((name: string) =>
-                populationMap[name] ? populationMap[name] >= 1000000 : true
+                populationMap[name]
+                    ? populationMap[name] >= this.props.minPopulationFilter!
+                    : true
             )
         return filters
     }

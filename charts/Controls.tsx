@@ -17,6 +17,7 @@ import { extend, keys, entries, first } from "./Util"
 import { worldRegions, labelsByRegion } from "./WorldRegions"
 import { ADMIN_BASE_URL, ENV } from "settings"
 
+import { format } from "d3-format"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { faCode } from "@fortawesome/free-solid-svg-icons/faCode"
 import { faCopy } from "@fortawesome/free-solid-svg-icons/faCopy"
@@ -279,12 +280,15 @@ class SettingsMenu extends React.Component<{
     }
 
     render() {
+        const { chart } = this.props
         return (
             <div
                 className="SettingsMenu"
                 onClick={evt => evt.stopPropagation()}
             >
-                <h2>Settings</h2>
+                <h2>Filters</h2>
+
+                {chart.isScatter && <PopulationFilter chart={chart.props} />}
             </div>
         )
     }
@@ -395,27 +399,43 @@ class ZoomToggle extends React.Component<{
 }
 
 @observer
-class FilterSmallCountriesToggle extends React.Component<{
+class PopulationFilter extends React.Component<{
     chart: ChartConfigProps
 }> {
-    @action.bound onToggle() {
-        this.props.chart.filterSmallCountries = this.props.chart
-            .filterSmallCountries
-            ? undefined
-            : true
+    @action.bound onChange(el: React.FormEvent<HTMLInputElement>) {
+        const value = el.currentTarget.value
+        this.props.chart.minPopulationFilter = value
+            ? this.steps[parseInt(value)]
+            : undefined
     }
 
+    private steps = [
+        0,
+        1000000,
+        5000000,
+        10000000,
+        50000000,
+        100000000,
+        250000000
+    ]
+
     render() {
-        const label = "Hide small countries"
+        const label = `Population > ${format("~s")(
+            this.props.chart.minPopulationFilter || 0
+        )}`
         return (
-            <label className="clickable">
-                <input
-                    type="checkbox"
-                    checked={this.props.chart.filterSmallCountries}
-                    onChange={this.onToggle}
-                    data-track-note="chart-filter-small-countries"
-                />{" "}
+            <label>
                 {label}
+                <input
+                    type="range"
+                    value={this.steps.indexOf(
+                        this.props.chart.minPopulationFilter || 0
+                    )}
+                    min="0"
+                    max="6"
+                    onChange={this.onChange}
+                    data-track-note="chart-filter-small-countries"
+                />
             </label>
         )
     }
@@ -573,7 +593,7 @@ export class Controls {
     }
 
     @computed get hasSettingsMenu(): boolean {
-        return false
+        return true
     }
 
     @computed get hasSpace(): boolean {
@@ -967,9 +987,6 @@ export class ControlsFooterView extends React.Component<{
                 )}
                 {chart.isScatter && chart.data.hasSelection && (
                     <ZoomToggle chart={chart.props} />
-                )}
-                {chart.isScatter && (
-                    <FilterSmallCountriesToggle chart={chart.props} />
                 )}
 
                 {chart.isLineChart && chart.lineChart.canToggleRelative && (
