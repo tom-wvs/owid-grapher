@@ -288,7 +288,7 @@ class SettingsMenu extends React.Component<{
             >
                 <h2>Filters</h2>
 
-                {chart.isScatter && <PopulationFilter chart={chart.props} />}
+                <PopulationFilter chart={chart.props} />
             </div>
         )
     }
