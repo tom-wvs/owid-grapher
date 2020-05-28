@@ -130,16 +130,28 @@ export const colorColumnOptions = {
         title: "continent"
     },
     stringency_index: {
-        title: "stringency_index"
+        title: "stringency_index",
+        binCount: 7
     },
     population: {
-        title: "population"
+        title: "population",
+        thresholds: [
+            0,
+            1000000,
+            5000000,
+            20000000,
+            100000000,
+            300000000,
+            2000000000
+        ]
     },
     population_density: {
-        title: "population_density"
+        title: "population_density",
+        binCount: 7
     },
     median_age: {
-        title: "median_age"
+        title: "median_age",
+        thresholds: [15, 20, 45, 50]
     },
     aged_65_older: {
         title: "aged_65_older"
@@ -148,32 +160,43 @@ export const colorColumnOptions = {
         title: "aged_70_older"
     },
     gdp_per_capita: {
+        binCount: 7,
         title: "gdp_per_capita"
     },
     extreme_poverty: {
-        title: "extreme_poverty"
+        title: "extreme_poverty",
+        binCount: 7
     },
     cvd_death_rate: {
         title: "cvd_death_rate"
     },
     diabetes_prevalence: {
-        title: "diabetes_prevalence"
+        title: "diabetes_prevalence",
+        binCount: 7
     },
     female_smokers: {
-        title: "female_smokers"
+        title: "female_smokers",
+        binCount: 7
     },
     male_smokers: {
         title: "male_smokers"
     },
     handwashing_facilities: {
-        title: "handwashing_facilities"
+        title: "handwashing_facilities",
+        binCount: 7
     },
     hospital_beds_per_100k: {
-        title: "hospital_beds_per_100k"
+        title: "hospital_beds_per_100k",
+        binCount: 7
     }
 }
 
-export const makeColorBins = (values: number[], binCount = 5) => {
+const makeColorBins = (
+    values: number[],
+    binCount: number,
+    thresholds?: number[]
+) => {
+    if (thresholds) return bin().thresholds(thresholds)(values)
     const scale = d3
         .scaleLinear()
         .domain(d3.extent(values))
@@ -186,14 +209,14 @@ export const makeColorBins = (values: number[], binCount = 5) => {
 
 export const makeColorVariable = (
     countryOptions: CountryOption[],
-    columnName: CovidRowColumnName,
-    binCount = 5
+    columnName: CovidRowColumnName
 ) => {
     const values = countryOptions.map(
         country => country[columnName]
     ) as number[]
     const valueMap = new Map<number, string>()
-    const bins = makeColorBins(values, binCount)
+    const column = colorColumnOptions[columnName]
+    const bins = makeColorBins(values, column.binCount || 3, column.thresholds)
     const binNames: string[] = []
     bins.forEach((aBin: any) => {
         const binName = aBin.x0 + "-" + aBin.x1
