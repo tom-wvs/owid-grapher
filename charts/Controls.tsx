@@ -423,14 +423,15 @@ class PopulationFilter extends React.Component<{
         const label = `Population > ${format("~s")(
             this.props.chart.minPopulationFilter || 0
         )}`
+        const value = this.steps.indexOf(
+            this.props.chart.minPopulationFilter || 0
+        )
         return (
             <label>
                 {label}
                 <input
                     type="range"
-                    value={this.steps.indexOf(
-                        this.props.chart.minPopulationFilter || 0
-                    )}
+                    value={value}
                     min="0"
                     max="6"
                     onChange={this.onChange}

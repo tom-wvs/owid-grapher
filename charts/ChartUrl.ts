@@ -39,7 +39,7 @@ export interface ChartQueryParams {
     overlay?: string
     stackMode?: string
     zoomToSelection?: string
-    minPopulationFilter?: number
+    minPopulationFilter?: string
     xScale?: string
     yScale?: string
     time?: string
@@ -158,7 +158,7 @@ export class ChartUrl implements ObservableUrl {
             chart.props.minPopulationFilter ===
             origChartProps.minPopulationFilter
                 ? undefined
-                : chart.props.minPopulationFilter
+                : chart.props.minPopulationFilter?.toString()
         params.endpointsOnly =
             chart.props.compareEndPointsOnly ===
             origChartProps.compareEndPointsOnly
@@ -310,7 +310,9 @@ export class ChartUrl implements ObservableUrl {
         )
 
         chart.props.minPopulationFilter = defaultTo(
-            params.minPopulationFilter ? params.minPopulationFilter : undefined,
+            params.minPopulationFilter
+                ? parseInt(params.minPopulationFilter)
+                : undefined,
             chart.props.minPopulationFilter
         )
 
