@@ -120,12 +120,10 @@ export class OwidVariable {
         return uniq(this.entityNames)
     }
 
-    getFilteredVariable(predicates: FilterPredicate[]): OwidVariable {
+    getFilteredVariable(isEntityFiltered: FilterPredicate): OwidVariable {
         const clonedJson = JSON.parse(JSON.stringify(this.rawJson))
         const indicesToKeep: number[] = this.entityNames
-            .map((name, index) =>
-                predicates.some(fn => fn(name)) ? index : null
-            )
+            .map((name, index) => (isEntityFiltered(name) ? null : index))
             .filter(i => i !== null) as number[]
         const years: number[] = []
         const entityNames: string[] = []

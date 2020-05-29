@@ -196,6 +196,7 @@ export class ChartConfigProps {
     // TODO: These 2 are currently in development. Do not save to DB.
     @observable.ref externalDataUrl?: string = undefined
     @observable.ref owidDataset?: OwidVariablesAndEntityKey = undefined
+    @observable.ref showSettingsMenu?: boolean = undefined
 
     @observable.ref selectedData: EntitySelection[] = []
     @observable.ref minTime?: TimeBound = undefined
@@ -349,12 +350,18 @@ export class ChartConfig {
             )
             // todo: apply filter here?
             variablesById[key] = filters.length
-                ? variable.getFilteredVariable(filters)
+                ? variable.getFilteredVariable((name: string) =>
+                      this.isEntityFiltered(name)
+                  )
                 : variable
         }
         each(entityMetaById, (e, id) => (e.id = +id))
         this.variablesById = variablesById
         this.entityMetaById = entityMetaById
+    }
+
+    isEntityFiltered(name: string) {
+        return this.filters.some(fn => fn(name) === false)
     }
 
     @computed get filters() {

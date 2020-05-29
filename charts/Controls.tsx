@@ -593,7 +593,7 @@ export class Controls {
     }
 
     @computed get hasSettingsMenu(): boolean {
-        return true
+        return this.props.chart.props.showSettingsMenu === true
     }
 
     @computed get hasSpace(): boolean {

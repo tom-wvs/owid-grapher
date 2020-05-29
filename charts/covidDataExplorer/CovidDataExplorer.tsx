@@ -806,7 +806,13 @@ export class CovidDataExplorer extends React.Component<{
                     added.forEach(code =>
                         this.toggleSelectedCountry(code, true)
                     )
-                    removed.forEach(code =>
+                    const removedButNotFiltered = removed.filter(
+                        code =>
+                            !this.chart.isEntityFiltered(
+                                this.countryCodeToNameMap.get(code)!
+                            )
+                    )
+                    removedButNotFiltered.forEach(code =>
                         this.toggleSelectedCountry(code, false)
                     )
                     // Trigger an update in order to apply color changes
@@ -893,6 +899,7 @@ export class CovidDataExplorer extends React.Component<{
             },
             owidDataset: this.owidVariableSet,
             selectedData: [],
+            showSettingsMenu: true,
             dimensions: this.dimensions,
             scatterPointLabelStrategy: "y",
             addCountryMode: "add-country",
