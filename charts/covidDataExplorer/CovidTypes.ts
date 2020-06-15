@@ -4,9 +4,6 @@ export declare type SmoothingOption = 0 | 3 | 7
 
 export declare type DailyFrequencyOption = boolean
 export declare type TotalFrequencyOption = boolean
-
-export declare type countrySlug = string
-
 export declare type MetricKind =
     | "deaths"
     | "cases"
@@ -14,6 +11,17 @@ export declare type MetricKind =
     | "case_fatality_rate"
     | "tests_per_case"
     | "positive_test_rate"
+
+declare type entityCode = string
+
+export declare type continentName =
+    | "Asia"
+    | "Europe"
+    | "Africa"
+    | "North America"
+    | "South America"
+    | "Oceania"
+    | ""
 
 // https://github.com/owid/covid-19-data/blob/master/public/data/owid-covid-data-codebook.md
 export interface ParsedCovidRow {
@@ -51,12 +59,18 @@ export interface ParsedCovidRow {
     hospital_beds_per_100k: number
 }
 
-export interface CountryOption {
+export interface EntityOption {
     name: string
-    slug: countrySlug
-    code: string
-    continent: string
+    code: entityCode
+    continent: continentName
     population: number
     rows: ParsedCovidRow[]
     latestTotalTestsPerCase: number | undefined
+}
+
+export interface EntityOptionGroup {
+    name: string
+    names: string[]
+    codes: entityCode[]
+    code: string // Prefix this with "group_"
 }

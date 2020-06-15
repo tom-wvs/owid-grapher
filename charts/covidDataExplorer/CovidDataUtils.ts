@@ -14,7 +14,12 @@ import {
     fromPairs
 } from "charts/Util"
 import moment from "moment"
-import { ParsedCovidRow, MetricKind, CountryOption } from "./CovidTypes"
+import {
+    ParsedCovidRow,
+    MetricKind,
+    EntityOption,
+    continentName
+} from "./CovidTypes"
 import { OwidVariable } from "charts/owidData/OwidVariable"
 import { populationMap } from "../PopulationMap"
 import { variablePartials } from "./CovidVariablePartials"
@@ -73,7 +78,7 @@ export const fetchAndParseData = async (): Promise<ParsedCovidRow[]> => {
         )
 }
 
-export const makeCountryOptions = (data: ParsedCovidRow[]): CountryOption[] => {
+export const makeCountryOptions = (data: ParsedCovidRow[]): EntityOption[] => {
     const rowsByCountry = groupBy(data, "iso_code")
     return map(rowsByCountry, rows => {
         const { location, iso_code } = rows[0]
@@ -82,14 +87,16 @@ export const makeCountryOptions = (data: ParsedCovidRow[]): CountryOption[] => {
             slug: location,
             code: iso_code,
             population: populationMap[location],
-            continent: labelsByRegion[worldRegionByMapEntity[location]],
+            continent: labelsByRegion[
+                worldRegionByMapEntity[location]
+            ] as continentName,
             latestTotalTestsPerCase: getLatestTotalTestsPerCase(rows),
             rows
         }
     })
 }
 
-export const continentsVariable = (countryOptions: CountryOption[]) => {
+export const continentsVariable = (countryOptions: EntityOption[]) => {
     const variable: Partial<OwidVariable> = {
         ...variablePartials.continents,
         years: countryOptions.map(country => 2020),

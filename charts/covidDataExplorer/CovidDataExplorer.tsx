@@ -38,7 +38,7 @@ import {
     DailyFrequencyOption,
     MetricKind,
     ParsedCovidRow,
-    CountryOption
+    EntityOption
 } from "./CovidTypes"
 import { ControlOption, ExplorerControl } from "./CovidExplorerControl"
 import { CountryPicker } from "./CovidCountryPicker"
@@ -311,15 +311,18 @@ export class CovidDataExplorer extends React.Component<{
             this.props.params.selectedCountryCodes.add(code)
         } else if (value === false) {
             this.props.params.selectedCountryCodes.delete(code)
-        } else if (this.props.params.selectedCountryCodes.has(code)) {
+        } else if (this.isSelected(code)) {
             this.props.params.selectedCountryCodes.delete(code)
         } else {
             this.props.params.selectedCountryCodes.add(code)
         }
     }
 
-    @action.bound toggleSelectedCountryCommand(code: string, value?: boolean) {
-        this.toggleSelectedCountry(code, value)
+    @action.bound toggleSelectedCountriesCommand(
+        codes: string[],
+        value?: boolean
+    ) {
+        codes.forEach(code => this.toggleSelectedCountry(code, value))
         this.updateChart()
     }
 
@@ -389,7 +392,7 @@ export class CovidDataExplorer extends React.Component<{
         return (
             <CountryPicker
                 covidDataExplorer={this}
-                toggleCountryCommand={this.toggleSelectedCountryCommand}
+                toggleCountriesCommand={this.toggleSelectedCountriesCommand}
                 isDropdownMenu={this.isMobile}
             ></CountryPicker>
         )
@@ -495,18 +498,20 @@ export class CovidDataExplorer extends React.Component<{
         requestAnimationFrame(() => this.onResize())
     }
 
-    @computed get countryOptions(): CountryOption[] {
+    @computed get entityOptions(): EntityOption[] {
         return makeCountryOptions(this.props.data)
     }
 
-    @computed get selectedCountryOptions(): CountryOption[] {
-        return this.countryOptions.filter(option =>
-            this.props.params.selectedCountryCodes.has(option.code)
-        )
+    @computed get selectedCountryOptions(): EntityOption[] {
+        return this.entityOptions.filter(option => this.isSelected(option.code))
+    }
+
+    isSelected(code: string) {
+        return this.props.params.selectedCountryCodes.has(code)
     }
 
     @computed private get availableEntities() {
-        return this.countryOptions.map(country => country.name)
+        return this.entityOptions.map(country => country.name)
     }
 
     @computed get perCapitaDivisor() {
@@ -580,7 +585,7 @@ export class CovidDataExplorer extends React.Component<{
 
     @computed get countryMap() {
         const map = new Map<string, number>()
-        this.countryOptions.forEach((country, index) => {
+        this.entityOptions.forEach((country, index) => {
             map.set(country.name, index)
         })
         return map
@@ -588,7 +593,7 @@ export class CovidDataExplorer extends React.Component<{
 
     @computed get countryCodeMap() {
         const map = new Map<string, number>()
-        this.countryOptions.forEach((country, index) => {
+        this.entityOptions.forEach((country, index) => {
             map.set(country.code, index)
         })
         return map
@@ -621,7 +626,7 @@ export class CovidDataExplorer extends React.Component<{
 
     @computed get countryCodeToNameMap() {
         const map = new Map<string, string>()
-        this.countryOptions.forEach((country, index) => {
+        this.entityOptions.forEach((country, index) => {
             map.set(country.code, country.name)
         })
         return map
@@ -671,7 +676,7 @@ export class CovidDataExplorer extends React.Component<{
 
     @computed get entityKey(): OwidEntityKey {
         const key: OwidEntityKey = {}
-        this.countryOptions.forEach((country, index) => {
+        this.entityOptions.forEach((country, index) => {
             key[index] = {
                 name: country.name,
                 code: country.code,
@@ -689,7 +694,7 @@ export class CovidDataExplorer extends React.Component<{
 
     // Keep the barScale here for perf reasons
     @computed get barScale() {
-        const allTestsPerCase = this.countryOptions
+        const allTestsPerCase = this.entityOptions
             .map(opt => opt.latestTotalTestsPerCase)
             .filter(d => d) as number[]
         const maxTestsPerCase = max(allTestsPerCase) ?? 1
@@ -924,7 +929,7 @@ export class CovidDataExplorer extends React.Component<{
 
     @observable.struct owidVariableSet: OwidVariablesAndEntityKey = {
         variables: {
-            123: continentsVariable(this.countryOptions)
+            123: continentsVariable(this.entityOptions)
         },
         entityKey: this.entityKey
     }

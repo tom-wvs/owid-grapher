@@ -13,9 +13,10 @@ import { faTimes } from "@fortawesome/free-solid-svg-icons/faTimes"
 import { FuzzySearch } from "charts/FuzzySearch"
 import { partition, sortBy, scrollIntoViewIfNeeded, last } from "charts/Util"
 import { CovidDataExplorer } from "./CovidDataExplorer"
-import { CountryOption } from "./CovidTypes"
+import { EntityOption, EntityOptionGroup } from "./CovidTypes"
 import { VerticalScrollContainer } from "charts/VerticalScrollContainer"
 import { Analytics } from "site/client/Analytics"
+import { groupBy } from "lodash"
 
 enum FocusDirection {
     first = "first",
@@ -23,6 +24,8 @@ enum FocusDirection {
     up = "up",
     down = "down"
 }
+
+declare type pickerOption = EntityOption | EntityOptionGroup
 
 /** Modulo that wraps negative numbers too */
 function mod(n: number, m: number) {
@@ -32,7 +35,7 @@ function mod(n: number, m: number) {
 @observer
 export class CountryPicker extends React.Component<{
     covidDataExplorer: CovidDataExplorer
-    toggleCountryCommand: (countryCode: string, value?: boolean) => void
+    toggleCountriesCommand: (countryCodes: string[], value?: boolean) => void
     isDropdownMenu?: boolean
 }> {
     @observable private searchInput?: string
@@ -59,45 +62,85 @@ export class CountryPicker extends React.Component<{
     }
 
     @action.bound private selectCountryCode(code: string, checked?: boolean) {
-        this.props.toggleCountryCommand(code, checked)
+        const codes = code.startsWith("group")
+            ? this.optionGroups.find(grp => grp.code === code)!.codes
+            : [code]
+
+        this.props.toggleCountriesCommand(codes, checked)
         // Clear search input
         this.searchInput = ""
+
         Analytics.logCovidCountrySelector(checked ? "select" : "deselect", code)
     }
 
-    @computed private get options(): CountryOption[] {
-        return this.props.covidDataExplorer.countryOptions
+    @computed private get entityOptions(): EntityOption[] {
+        return this.props.covidDataExplorer.entityOptions
     }
 
-    @computed private get selectedOptions(): CountryOption[] {
-        return this.props.covidDataExplorer.selectedCountryOptions
+    @computed private get optionsAndOptionGroups(): pickerOption[] {
+        return (this.entityOptions as pickerOption[]).concat(this.optionGroups)
+    }
+
+    @computed private get optionGroups(): EntityOptionGroup[] {
+        // Create an option group for every continent.
+        const continents = groupBy(
+            this.props.covidDataExplorer.entityOptions,
+            "continent"
+        )
+        return Object.keys(continents)
+            .filter(key => key)
+            .map(key => {
+                const group = continents[key]
+                return {
+                    code: "group_" + key,
+                    codes: group.map(row => row.code),
+                    name: " Countries in " + key,
+                    names: group.map(row => row.name)
+                }
+            })
+    }
+
+    @computed private get selectedOptionGroups(): EntityOptionGroup[] {
+        return this.optionGroups.filter(
+            group =>
+                !group.codes.some(
+                    code => !this.props.covidDataExplorer.isSelected(code)
+                )
+        )
+    }
+
+    @computed private get selectedOptions(): pickerOption[] {
+        return (this.props.covidDataExplorer
+            .selectedCountryOptions as pickerOption[]).concat(
+            this.selectedOptionGroups
+        )
     }
 
     @computed private get optionColorMap() {
         return this.props.covidDataExplorer.countryCodeToColorMap
     }
 
-    @bind private isSelected(option: CountryOption) {
+    @bind private isSelected(option: pickerOption) {
         return this.selectedOptions.includes(option)
     }
 
-    @computed private get fuzzy(): FuzzySearch<CountryOption> {
-        return new FuzzySearch(this.options, "name")
+    @computed private get fuzzy(): FuzzySearch<pickerOption> {
+        return new FuzzySearch(this.optionsAndOptionGroups, "name")
     }
 
-    @computed private get searchResults(): CountryOption[] {
+    @computed private get searchResults(): pickerOption[] {
         if (this.searchInput) {
             return this.fuzzy.search(this.searchInput)
         }
         // Show the selected up top and in order.
         const [selected, unselected] = partition(
-            sortBy(this.options, r => r.name),
+            sortBy(this.optionsAndOptionGroups, r => r.name),
             this.isSelected
         )
         return [...selected, ...unselected]
     }
 
-    @computed private get focusableOptions(): CountryOption[] {
+    @computed private get focusableOptions(): pickerOption[] {
         return this.searchResults
     }
 
@@ -106,7 +149,7 @@ export class CountryPicker extends React.Component<{
         return mod(index, this.focusableOptions.length)
     }
 
-    @computed private get focusedOption(): CountryOption | undefined {
+    @computed private get focusedOption(): pickerOption | undefined {
         return this.focusIndex !== undefined
             ? this.focusableOptions[this.focusIndex]
             : undefined
@@ -199,7 +242,7 @@ export class CountryPicker extends React.Component<{
         this.focusIndex = undefined
     }
 
-    @action.bound private onHover(option: CountryOption, index: number) {
+    @action.bound private onHover(option: pickerOption, index: number) {
         if (!this.blockOptionHover) {
             this.focusIndex = index
         }
@@ -284,11 +327,20 @@ export class CountryPicker extends React.Component<{
         }
     }
 
+    @computed get optionsWithActiveMetric() {
+        const newSet = new Set(
+            this.props.covidDataExplorer.availableCountriesForMetric
+        )
+        this.optionGroups
+            .filter(group => group.names.some(name => newSet.has(name)))
+            .forEach(grp => newSet.add(grp.name))
+        return newSet
+    }
+
     render() {
         const countries = this.searchResults
         const selectedCountries = this.selectedOptions
-        const availableCountries = this.props.covidDataExplorer
-            .availableCountriesForMetric
+        const optionsWithActiveMetric = this.optionsWithActiveMetric
 
         return (
             <div className="CountryPicker" onKeyDown={this.onKeyDown}>
@@ -349,7 +401,7 @@ export class CountryPicker extends React.Component<{
                                     {countries.map((option, index) => (
                                         <CovidCountryOption
                                             key={index}
-                                            hasDataForActiveMetric={availableCountries.has(
+                                            hasDataForActiveMetric={optionsWithActiveMetric.has(
                                                 option.name
                                             )}
                                             option={option}
@@ -400,7 +452,7 @@ export class CountryPicker extends React.Component<{
 }
 
 interface CovidCountryOptionProps {
-    option: CountryOption
+    option: pickerOption
     highlight: (label: string) => JSX.Element | string
     onChange: (code: string, checked: boolean) => void
     onHover?: () => void
