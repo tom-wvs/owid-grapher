@@ -303,8 +303,6 @@ export class ChartConfig {
     // at startDrag, we want to show the full axis
     @observable.ref useTimelineDomains = false
 
-    @observable.ref variablesById: { [id: number]: OwidVariable } = {}
-
     @action.bound async downloadData() {
         if (this.props.externalDataUrl) {
             const json = await fetchJSON(this.props.externalDataUrl)
@@ -345,21 +343,13 @@ export class ChartConfig {
         this.table = OwidTable.fromLegacy(json)
         // this.table.printStats()
 
-        const variablesById: { [id: string]: OwidVariable } = {}
-        const filters = this.filters
-        for (const key in json.variables) {
-            const variable = new OwidVariable(
-                json.variables[key]
-            ).setEntityNamesAndCodesFromEntityMap(json.entityKey)
-            variablesById[key] = variable
-            if (filters.length)
-                variablesById[
-                    key
-                ] = variable.getFilteredVariable((name: string) =>
-                    this.isEntityFiltered(name)
-                )
-        }
-        this.variablesById = variablesById
+        // const filters = this.filters
+        // if (filters.length)
+        //         variablesById[
+        //             key
+        //         ] = variable.getFilteredVariable((name: string) =>
+        //             this.isEntityFiltered(name)
+        //         )
     }
 
     isEntityFiltered(name: string) {

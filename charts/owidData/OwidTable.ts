@@ -159,10 +159,6 @@ abstract class AbstractTable<ROW_TYPE> {
     @computed get columnNames() {
         return new Set(this.spec.keys())
     }
-
-    isEmpty() {
-        return this.rows.length === 0
-    }
 }
 
 export class OwidTable extends AbstractTable<OwidRow> {
@@ -325,9 +321,7 @@ export class OwidTable extends AbstractTable<OwidRow> {
             let annotationColumnName: string
             let annotationMap: Map<string, string>
             if (variable.display.entityAnnotationsMap) {
-                annotationColumnName = this.makeAnnotationColumnSlug(
-                    columnName + "-annotations"
-                )
+                annotationColumnName = this.makeAnnotationColumnSlug(columnName)
                 annotationMap = this.annotationsToMap(
                     variable.display.entityAnnotationsMap
                 )
