@@ -1,6 +1,8 @@
 import { OwidVariablesAndEntityKey, EntityMeta } from "./OwidVariableSet"
 import { OwidVariable } from "./OwidVariable"
 import { slugify, groupBy } from "charts/Util"
+import { max, min } from "lodash"
+import { computed } from "mobx"
 
 declare type int = number
 declare type year = int
@@ -27,7 +29,11 @@ interface OwidTripletTable {
 
 abstract class AbstractColumn {
     name: columnName = ""
-    table: OwidTable = ""
+    table: OwidTable
+
+    constructor(table: OwidTable) {
+        this.table = table
+    }
 }
 
 abstract class AbstractTemporalColumn extends AbstractColumn {}
@@ -37,20 +43,56 @@ class NumberColumn extends AbstractColumn {}
 class StringColumn extends AbstractColumn {}
 class EntityColumn extends AbstractColumn {}
 
-export class OwidTable {
-    rows: Row[]
-    constructor(rows: Row[]) {
+abstract class AbstractTable<ROW_TYPE> {
+    rows: ROW_TYPE[]
+    columnNames: Set<string>
+    constructor(rows: ROW_TYPE[], columnNames: Set<string>) {
         this.rows = rows
+        this.columnNames = columnNames
+    }
+}
+
+export class OwidTable extends AbstractTable<OwidRow> {
+    printStats() {
+        console.log(this.minYear, this.maxYear)
+        console.log(this.toDelimited(",", 10))
+    }
+
+    toDelimited(delimiter = ",", rowLimit?: number) {
+        const cols = Array.from(this.columnNames)
+        const header = cols.join(delimiter) + "\n"
+        const rows = rowLimit ? this.rows.slice(0, rowLimit) : this.rows
+        const body = rows
+            .map(row => cols.map(cName => row[cName] ?? "").join(delimiter))
+            .join("\n")
+        return header + body
+    }
+
+    @computed get maxYear() {
+        return max(this.allYears)
+    }
+
+    @computed get minYear() {
+        return min(this.allYears)
+    }
+
+    @computed get allYears() {
+        return this.rows.filter(row => row.year).map(row => row.year!)
     }
 
     static fromLegacy(json: OwidVariablesAndEntityKey) {
         let rows: OwidRow[] = []
         const entityMetaById: { [id: string]: EntityMeta } = json.entityKey
+        const columnNames = new Set(["entityName", "entityId"])
         for (const key in json.variables) {
             const variable = new OwidVariable(
                 json.variables[key]
             ).setEntityNamesFromEntityMap(entityMetaById)
             const columnName = slugify(variable.name)
+            variable.display.yearIsDay
+                ? columnNames.add("day")
+                : columnNames.add("year")
+            columnNames.add(columnName)
             const newRows = variable.values.map((value, index) => {
                 const timePart = variable.display.yearIsDay ? "day" : "year"
                 return {
@@ -72,6 +114,6 @@ export class OwidTable {
             Object.assign({}, ...groupMap[groupKey])
         )
 
-        return new OwidTable(joinedRows)
+        return new OwidTable(joinedRows, columnNames)
     }
 }

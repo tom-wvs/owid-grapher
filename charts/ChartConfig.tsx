@@ -352,6 +352,7 @@ export class ChartConfig {
 
     @action.bound receiveData(json: OwidVariablesAndEntityKey) {
         const table = OwidTable.fromLegacy(json)
+        table.printStats()
 
         const variablesById: { [id: string]: OwidVariable } = {}
         const entityMetaById: { [id: string]: EntityMeta } = json.entityKey
