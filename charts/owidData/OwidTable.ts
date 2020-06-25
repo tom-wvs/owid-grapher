@@ -80,6 +80,14 @@ abstract class AbstractColumn {
         return this.spec.description
     }
 
+    @computed get datasetName() {
+        return this.spec.datasetName
+    }
+
+    @computed get source() {
+        return this.spec.source
+    }
+
     @computed get datasetId() {
         return this.spec.datasetId
     }

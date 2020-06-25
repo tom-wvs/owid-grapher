@@ -1,4 +1,4 @@
-import { extend, uniq, sortedUniq, diffDateISOStringInDays } from "../Util"
+import { extend, diffDateISOStringInDays } from "../Util"
 import { observable, computed } from "mobx"
 import { EPOCH_DATE } from "settings"
 import { OwidSource } from "./OwidSource"

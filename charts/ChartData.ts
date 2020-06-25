@@ -82,10 +82,10 @@ export class ChartData {
             return this.axisDimensions.map(d => d.displayName).join(" vs. ")
         else if (
             this.primaryDimensions.length > 1 &&
-            uniq(map(this.primaryDimensions, d => d.variable.datasetName))
+            uniq(map(this.primaryDimensions, d => d.column.datasetName))
                 .length === 1
         )
-            return this.primaryDimensions[0].variable.datasetName
+            return this.primaryDimensions[0].column.datasetName!
         else if (this.primaryDimensions.length === 2)
             return this.primaryDimensions.map(d => d.displayName).join(" and ")
         else return this.primaryDimensions.map(d => d.displayName).join(", ")
@@ -540,13 +540,13 @@ export class ChartData {
 
         const sources: SourceWithDimension[] = []
         each(filledDimensions, dim => {
-            const { variable, column } = dim
+            const { column } = dim
             // HACK (Mispy): Ignore the default color source on scatterplots.
             if (
                 column.name !== "Countries Continents" &&
                 column.name !== "Total population (Gapminder)"
             )
-                sources.push({ source: variable.source, dimension: dim })
+                sources.push({ source: column.source!, dimension: dim })
         })
         return sources
     }
