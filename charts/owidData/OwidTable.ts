@@ -18,7 +18,8 @@ interface OwidRow extends Row {
     entityCode: string
     entityId: number
     year?: year
-    day?: string
+    day?: int
+    date?: string
     _selected?: boolean
     _filtered?: boolean
     _color?: color
@@ -50,7 +51,7 @@ abstract class AbstractColumn {
     }
 
     @computed get years() {
-        return this.rows.map(row => row.year ?? row.day)
+        return this.rows.map(row => (row.year ?? row.day)!)
     }
 
     @computed get rows() {

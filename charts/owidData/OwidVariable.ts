@@ -35,7 +35,7 @@ export class OwidVariable {
     display: OwidVariableDisplaySettings = new OwidVariableDisplaySettings()
 
     @observable.struct source!: OwidSource
-    @observable.ref rawYears: number[] = []
+    @observable.ref private rawYears: number[] = []
     @observable.ref entityNames: string[] = []
     @observable.ref entityCodes: string[] = []
     @observable.ref entities: number[] = []
@@ -139,9 +139,5 @@ export class OwidVariable {
         clone.entities = entities
         clone.values = values
         return new OwidVariable(clone)
-    }
-
-    @computed get yearsUniq(): number[] {
-        return sortedUniq(this.years)
     }
 }

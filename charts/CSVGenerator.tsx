@@ -1,6 +1,14 @@
 import { computed, action } from "mobx"
 import { ChartConfig } from "./ChartConfig"
-import { sortBy, uniq, flatten, csvEscape, first, last } from "./Util"
+import {
+    sortBy,
+    uniq,
+    flatten,
+    csvEscape,
+    first,
+    last,
+    sortedUniq
+} from "./Util"
 import { ChartDimensionWithOwidVariable } from "./ChartDimensionWithOwidVariable"
 
 interface CSVGeneratorProps {
@@ -27,7 +35,7 @@ export class CSVGenerator {
         // only get days if chart has a day-indexed variable, else get years across dimensions
         const indexingYears = sortBy(
             dayIndexedCSV
-                ? yearIsDayVar?.yearsUniq
+                ? sortedUniq(yearIsDayVar?.years)
                 : uniq(flatten(dimensions.map(d => d.yearsUniq)))
         )
 
