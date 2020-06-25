@@ -106,6 +106,9 @@ export class CSVGenerator {
 
     // returns true if given dimension is year-based in a chart with day-based variable
     private isFixedYearDimension(dim: ChartDimensionWithOwidVariable) {
-        return this.props.chart.table.hasDayColumn && !dim.yearIsDayVar
+        return (
+            this.props.chart.table.hasDayColumn &&
+            !dim.column.isDailyMeasurement
+        )
     }
 }

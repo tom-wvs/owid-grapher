@@ -19,7 +19,7 @@ import { OwidTable } from "./owidData/OwidTable"
 export class ChartDimensionWithOwidVariable {
     props: ChartDimension
     @observable.ref index: number
-    @observable.ref variable: OwidVariable
+    @observable.ref private variable: OwidVariable
 
     @computed get variableId(): number {
         return this.props.variableId
@@ -31,7 +31,7 @@ export class ChartDimensionWithOwidVariable {
 
     @computed get displayName(): string {
         return defaultTo(
-            defaultTo(this.props.display.name, this.variable.display.name),
+            defaultTo(this.props.display.name, this.column.display.name),
             this.column.name
         )
     }
@@ -39,13 +39,13 @@ export class ChartDimensionWithOwidVariable {
     @computed get includeInTable(): boolean {
         return (
             this.property !== "color" &&
-            (this.variable.display.includeInTable ?? true)
+            (this.column.display.includeInTable ?? true)
         )
     }
 
     @computed get unit(): string {
         return defaultTo(
-            defaultTo(this.props.display.unit, this.variable.display.unit),
+            defaultTo(this.props.display.unit, this.column.display.unit),
             this.column.unit
         )
     }
@@ -59,7 +59,7 @@ export class ChartDimensionWithOwidVariable {
         return defaultTo(
             defaultTo(
                 this.props.display.conversionFactor,
-                this.variable.display.conversionFactor
+                this.column.display.conversionFactor
             ),
             1
         )
@@ -68,7 +68,7 @@ export class ChartDimensionWithOwidVariable {
     @computed get isProjection(): boolean {
         return !!defaultTo(
             this.props.display.isProjection,
-            this.variable.display.isProjection
+            this.column.display.isProjection
         )
     }
 
@@ -80,7 +80,7 @@ export class ChartDimensionWithOwidVariable {
         return defaultTo(
             defaultTo(
                 this.props.display.tolerance,
-                this.variable.display.tolerance
+                this.column.display.tolerance
             ),
             this.property === "color" ? Infinity : 0
         )
@@ -90,7 +90,7 @@ export class ChartDimensionWithOwidVariable {
         return defaultTo(
             defaultTo(
                 this.props.display.numDecimalPlaces,
-                this.variable.display.numDecimalPlaces
+                this.column.display.numDecimalPlaces
             ),
             2
         )
@@ -101,9 +101,9 @@ export class ChartDimensionWithOwidVariable {
         const shortUnit = defaultTo(
             defaultTo(
                 this.props.display.shortUnit,
-                this.variable.display.shortUnit
+                this.column.display.shortUnit
             ),
-            this.variable.shortUnit || undefined
+            this.column.shortUnit || undefined
         )
 
         if (shortUnit !== undefined) return shortUnit
@@ -150,13 +150,10 @@ export class ChartDimensionWithOwidVariable {
         }
     }
 
-    @computed get yearIsDayVar() {
-        return this.variable.display.yearIsDay
-    }
-
     @computed get formatYear(): (year: number) => string {
-        const { yearIsDay } = this.variable.display
-        return yearIsDay ? (year: number) => formatDay(year) : formatYear
+        return this.column.isDailyMeasurement
+            ? (year: number) => formatDay(year)
+            : formatYear
     }
 
     @computed get values() {

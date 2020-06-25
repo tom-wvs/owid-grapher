@@ -1,5 +1,5 @@
 import { OwidVariablesAndEntityKey, EntityMeta } from "./OwidVariableSet"
-import { OwidVariable } from "./OwidVariable"
+import { OwidVariable, OwidVariableDisplaySettings } from "./OwidVariable"
 import { slugify, groupBy } from "charts/Util"
 import { max, min } from "lodash"
 import { computed } from "mobx"
@@ -39,11 +39,14 @@ interface ColumnSpec {
     slug: columnSlug
     name: string
     unit?: string
+    shortUnit?: string
+    isDailyMeasurement?: boolean
     description?: string
     coverage?: string
     datasetId?: int
     datasetName?: string
     source?: OwidSource
+    display?: OwidVariableDisplaySettings
 }
 
 abstract class AbstractColumn {
@@ -55,8 +58,20 @@ abstract class AbstractColumn {
         this.spec = spec
     }
 
+    @computed get isDailyMeasurement() {
+        return !!this.spec.isDailyMeasurement
+    }
+
     @computed get unit() {
         return this.spec.unit || ""
+    }
+
+    @computed get shortUnit() {
+        return this.spec.shortUnit || ""
+    }
+
+    @computed get display() {
+        return this.spec.display || new OwidVariableDisplaySettings()
     }
 
     @computed get coverage() {
@@ -275,25 +290,33 @@ export class OwidTable extends AbstractTable<OwidRow> {
                 json.variables[key]
             ).setEntityNamesAndCodesFromEntityMap(entityMetaById)
             const columnName = variable.id + "-" + slugify(variable.name)
-            variable.display.yearIsDay
+            const isDailyMeasurement = variable.display.yearIsDay
+            const timeColumnName = isDailyMeasurement ? "day" : "year"
+            isDailyMeasurement
                 ? columnSpecs.set("day", { name: "day", slug: "day" })
                 : columnSpecs.set("year", { name: "year", slug: "year" })
             const {
                 unit,
+                shortUnit,
                 description,
                 coverage,
                 datasetId,
                 datasetName,
-                source
+                source,
+                display
             } = variable
+
             columnSpecs.set(columnName, {
                 name: variable.name,
                 slug: columnName,
+                isDailyMeasurement,
                 unit,
+                shortUnit,
                 description,
                 coverage,
                 datasetId,
                 datasetName,
+                display,
                 source
             })
 
@@ -313,10 +336,9 @@ export class OwidTable extends AbstractTable<OwidRow> {
             }
 
             const newRows = variable.values.map((value, index) => {
-                const timePart = variable.display.yearIsDay ? "day" : "year"
                 const entityName = variable.entityNames[index]
                 const row: any = {
-                    [timePart]: variable.years[index],
+                    [timeColumnName]: variable.years[index],
                     [columnName]: value,
                     entityName,
                     entityId: variable.entities[index],
