@@ -405,22 +405,14 @@ export class ChartConfig {
         this.setBaseFontSize = val
     }
 
-    @computed get yearIsDayVar() {
-        return first(this.variables.filter(v => v.display.yearIsDay))
-    }
-
-    @computed get variables(): OwidVariable[] {
-        return values(this.variablesById)
-    }
-
     @computed get formatYearFunction() {
-        const yearIsDayVar = this.yearIsDayVar
-        return yearIsDayVar ? (day: number) => formatDay(day) : formatYear
+        return this.table.hasDayColumn
+            ? (day: number) => formatDay(day)
+            : formatYear
     }
 
     @computed get formatYearTickFunction() {
-        const yearIsDayVar = this.yearIsDayVar
-        return yearIsDayVar
+        return this.table.hasDayColumn
             ? (day: number, options?: TickFormattingOptions) =>
                   formatDay(
                       day,

@@ -23,7 +23,7 @@ export class CSVGenerator {
 
     @computed get csvBlob() {
         const { chart } = this.props
-        const yearIsDayVar = chart.yearIsDayVar
+        const yearIsDayVar = chart.table.hasDayColumn
         const dayIndexedCSV = yearIsDayVar ? true : false
 
         const dimensions = chart.data.filledDimensions.filter(
@@ -35,7 +35,7 @@ export class CSVGenerator {
         // only get days if chart has a day-indexed variable, else get years across dimensions
         const indexingYears = sortBy(
             dayIndexedCSV
-                ? sortedUniq(yearIsDayVar?.years)
+                ? sortedUniq(chart.table.columnsByName.get("day")?.years)
                 : uniq(flatten(dimensions.map(d => d.yearsUniq)))
         )
 
@@ -106,6 +106,6 @@ export class CSVGenerator {
 
     // returns true if given dimension is year-based in a chart with day-based variable
     private isFixedYearDimension(dim: ChartDimensionWithOwidVariable) {
-        return this.props.chart.yearIsDayVar && !dim.yearIsDayVar
+        return this.props.chart.table.hasDayColumn && !dim.yearIsDayVar
     }
 }

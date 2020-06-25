@@ -104,6 +104,15 @@ export class OwidTable extends AbstractTable<OwidRow> {
         return map
     }
 
+    @computed get columnsByName() {
+        const columns = this.columns
+        const map = new Map<string, AbstractColumn>()
+        columns.forEach(col => {
+            map.set(col.name, col)
+        })
+        return map
+    }
+
     printStats() {
         console.log(this.minYear, this.maxYear)
         console.log(this.toDelimited(",", 10))
@@ -160,6 +169,10 @@ export class OwidTable extends AbstractTable<OwidRow> {
 
     @computed get allYears() {
         return this.rows.filter(row => row.year).map(row => row.year!)
+    }
+
+    @computed get hasDayColumn() {
+        return this.columnNames.has("day")
     }
 
     static fromLegacy(json: OwidVariablesAndEntityKey) {
