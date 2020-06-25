@@ -1,4 +1,3 @@
-import { OwidVariable } from "./owidData/OwidVariable"
 import { observable, computed } from "mobx"
 import {
     defaultTo,
@@ -14,7 +13,7 @@ import {
 } from "./Util"
 import { ChartDimension } from "./ChartDimension"
 import { TickFormattingOptions } from "./TickFormattingOptions"
-import { OwidTable, AbstractColumn } from "./owidData/OwidTable"
+import { AbstractColumn } from "./owidData/OwidTable"
 
 export class ChartDimensionWithOwidVariable {
     props: ChartDimension

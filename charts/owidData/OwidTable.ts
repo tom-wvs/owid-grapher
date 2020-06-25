@@ -166,7 +166,7 @@ abstract class AbstractTable<ROW_TYPE> {
 }
 
 export class OwidTable extends AbstractTable<OwidRow> {
-    @computed get columns() {
+    @computed get columnsByVarId() {
         const map = new Map<number, AbstractColumn>()
         Array.from(this.spec.keys()).forEach(slug => {
             const spec = this.spec.get(slug)!
@@ -176,7 +176,7 @@ export class OwidTable extends AbstractTable<OwidRow> {
     }
 
     @computed get columnsByName() {
-        const columns = this.columns
+        const columns = this.columnsByVarId
         const map = new Map<string, AbstractColumn>()
         columns.forEach(col => {
             map.set(col.name, col)
@@ -185,7 +185,7 @@ export class OwidTable extends AbstractTable<OwidRow> {
     }
 
     @computed get columnsBySlug() {
-        const columns = this.columns
+        const columns = this.columnsByVarId
         const map = new Map<columnSlug, AbstractColumn>()
         columns.forEach(col => {
             map.set(col.slug, col)

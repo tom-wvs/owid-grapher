@@ -57,11 +57,10 @@ export class ChartData {
         if (!this.isReady) return []
 
         return map(this.chart.dimensions, (dim, i) => {
-            const variable = this.chart.variablesById[dim.variableId]
             return new ChartDimensionWithOwidVariable(
                 i,
                 dim,
-                this.chart.table.columns.get(variable.id)!
+                this.chart.table.columnsByVarId.get(dim.variableId)!
             )
         })
     }
