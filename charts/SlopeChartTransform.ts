@@ -126,7 +126,7 @@ export class SlopeChartTransform extends ChartTransform {
 
         const { yDimension, xDomain, colorByEntity, sizeByEntity, chart } = this
         const { keyColors } = chart.data
-        const entityKey = this.chart.entityMetaByKey
+        const entityKey = this.chart.table.entityIdToNameMap
 
         const minYear = Math.max(xDomain[0])
         const maxYear = Math.min(xDomain[1])
@@ -155,7 +155,7 @@ export class SlopeChartTransform extends ChartTransform {
             )
             return {
                 entityDimensionKey,
-                label: entityKey[entity].name,
+                label: entityKey.get(entity),
                 color:
                     keyColors[entityDimensionKey] ||
                     colorByEntity.get(entity) ||

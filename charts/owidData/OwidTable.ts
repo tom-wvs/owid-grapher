@@ -14,6 +14,7 @@ interface Row {
 
 interface OwidRow extends Row {
     entityName: string
+    entityCode: string
     entityId: number
     year?: year
     day?: string
@@ -68,6 +69,37 @@ export class OwidTable extends AbstractTable<OwidRow> {
         return header + body
     }
 
+    @computed get availableEntities() {
+        return Array.from(new Set(this.rows.map(row => row.entityName)))
+    }
+
+    // todo: can we remove at some point?
+    @computed get entityIdToNameMap() {
+        const map = new Map()
+        this.rows.forEach(row => {
+            map.set(row.entityId, row.entityName)
+        })
+        return map
+    }
+
+    // todo: can we remove at some point?
+    @computed get entityNameToIdMap() {
+        const map = new Map()
+        this.rows.forEach(row => {
+            map.set(row.entityName, row.entityId)
+        })
+        return map
+    }
+
+    // todo: can we remove at some point?
+    @computed get entityNameToCodeMap() {
+        const map = new Map()
+        this.rows.forEach(row => {
+            map.set(row.entityName, row.entityCode)
+        })
+        return map
+    }
+
     @computed get maxYear() {
         return max(this.allYears)
     }
@@ -83,11 +115,11 @@ export class OwidTable extends AbstractTable<OwidRow> {
     static fromLegacy(json: OwidVariablesAndEntityKey) {
         let rows: OwidRow[] = []
         const entityMetaById: { [id: string]: EntityMeta } = json.entityKey
-        const columnNames = new Set(["entityName", "entityId"])
+        const columnNames = new Set(["entityName", "entityId", "entityCode"])
         for (const key in json.variables) {
             const variable = new OwidVariable(
                 json.variables[key]
-            ).setEntityNamesFromEntityMap(entityMetaById)
+            ).setEntityNamesAndCodesFromEntityMap(entityMetaById)
             const columnName = slugify(variable.name)
             variable.display.yearIsDay
                 ? columnNames.add("day")
@@ -99,7 +131,8 @@ export class OwidTable extends AbstractTable<OwidRow> {
                     [timePart]: variable.years[index],
                     [columnName]: value,
                     entityName: variable.entityNames[index],
-                    entityId: variable.entities[index]
+                    entityId: variable.entities[index],
+                    entityCode: variable.entities
                 }
             })
             rows = rows.concat(newRows)

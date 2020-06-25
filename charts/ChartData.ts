@@ -219,7 +219,7 @@ export class ChartData {
 
     @computed get isSingleEntity(): boolean {
         return (
-            this.chart.availableEntities.length === 1 ||
+            this.chart.table.availableEntities.length === 1 ||
             this.chart.addCountryMode === "change-country"
         )
     }
@@ -251,16 +251,17 @@ export class ChartData {
         color?: Color
     }> {
         const { chart, primaryDimensions } = this
+        const entityIdToNameMap = chart.table.entityIdToNameMap
         let validSelections = chart.props.selectedData.filter(sel => {
             // Must be a dimension that's on the chart
             const dimension = primaryDimensions[sel.index]
             if (!dimension) return false
 
             // Entity must be within that dimension
-            const entityMeta = chart.entityMetaById[sel.entityId]
+            const entityName = entityIdToNameMap.get(sel.entityId)
             if (
-                !entityMeta ||
-                !includes(dimension.variable.entitiesUniq, entityMeta.name)
+                !entityName ||
+                !includes(dimension.variable.entitiesUniq, entityName)
             )
                 return false
 
@@ -283,7 +284,7 @@ export class ChartData {
         return map(validSelections, sel => {
             return {
                 entityDimensionKey: this.makeEntityDimensionKey(
-                    chart.entityMetaById[sel.entityId].name,
+                    entityIdToNameMap.get(sel.entityId),
                     sel.index
                 ),
                 color: sel.color
@@ -349,21 +350,29 @@ export class ChartData {
         const matchedEntities = new Map<string, boolean>()
         entityCodes.forEach(code => matchedEntities.set(code, false))
         if (this.canChangeEntity) {
-            this.availableEntities.forEach(entity => {
-                const entityMeta = this.chart.entityMetaByKey[entity]
+            this.availableEntities.forEach(entityName => {
+                const entityId = this.chart.table.entityNameToIdMap.get(
+                    entityName
+                )
+                const entityCode = this.chart.table.entityNameToCodeMap.get(
+                    entityName
+                )
                 if (
-                    entityMeta.code === entityCodes[0] ||
-                    entityMeta.name === entityCodes[0]
+                    entityCode === entityCodes[0] ||
+                    entityName === entityCodes[0]
                 ) {
                     matchedEntities.set(entityCodes[0], true)
-                    this.setSelectedEntity(entityMeta.id)
+                    this.setSelectedEntity(entityId)
                 }
             })
         } else {
             this.selectedKeys = this.availableKeys.filter(key => {
                 const meta = this.lookupKey(key)
-                const entityMeta = this.chart.entityMetaByKey[meta.entity]
-                return [meta.shortCode, entityMeta.code, entityMeta.name]
+                const entityName = meta.entity
+                const entityCode = this.chart.table.entityNameToCodeMap.get(
+                    entityName
+                )
+                return [meta.shortCode, entityCode, entityName]
                     .map(key => {
                         if (!matchedEntities.has(key)) return false
                         matchedEntities.set(key, true)
@@ -395,7 +404,7 @@ export class ChartData {
         const selection = map(keys, key => {
             const { entity, index } = this.lookupKey(key)
             return {
-                entityId: chart.entityMetaByKey[entity].id,
+                entityId: this.chart.table.entityNameToIdMap.get(entity),
                 index: index,
                 color: this.keyColors[key]
             }
@@ -426,7 +435,10 @@ export class ChartData {
         primaryDimensions.forEach((dimension, dimensionIndex) => {
             const annotationMap = dimension.variable.annotationMap
             dimension.variable.entitiesUniq.forEach(entityName => {
-                const entityMeta = chart.entityMetaByKey[entityName]
+                const entityCode = chart.table.entityNameToCodeMap.get(
+                    entityName
+                )
+                const entityId = chart.table.entityNameToIdMap.get(entityName)
                 const entityDimensionKey = this.makeEntityDimensionKey(
                     entityName,
                     dimensionIndex
@@ -447,7 +459,7 @@ export class ChartData {
 
                 keyData.set(entityDimensionKey, {
                     entityDimensionKey,
-                    entityId: entityMeta.id,
+                    entityId,
                     entity: entityName,
                     annotation: annotationMap.get(annotationKey),
                     dimension,
@@ -457,10 +469,8 @@ export class ChartData {
                     shortCode:
                         primaryDimensions.length > 1 &&
                         chart.addCountryMode !== "change-country"
-                            ? `${entityMeta.code || entityMeta.name}-${
-                                  dimension.index
-                              }`
-                            : entityMeta.code || entityMeta.name
+                            ? `${entityCode || entityName}-${dimension.index}`
+                            : entityCode || entityName
                 })
             })
         })

@@ -48,6 +48,7 @@ export class OwidVariable {
     @observable.struct source!: OwidSource
     @observable.ref rawYears: number[] = []
     @observable.ref entityNames: string[] = []
+    @observable.ref entityCodes: string[] = []
     @observable.ref entities: number[] = []
     @observable.ref values: (string | number)[] = []
 
@@ -145,8 +146,11 @@ export class OwidVariable {
     }
 
     // Todo: would be great if we could remove the need for this and just include entity names directly in the data
-    setEntityNamesFromEntityMap(entityMap: { [id: string]: EntityMeta }) {
+    setEntityNamesAndCodesFromEntityMap(entityMap: {
+        [id: string]: EntityMeta
+    }) {
         this.entityNames = this.entities.map(id => entityMap[id].name)
+        this.entityCodes = this.entities.map(id => entityMap[id].code)
         return this
     }
 

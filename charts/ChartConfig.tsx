@@ -25,10 +25,7 @@ import {
     formatYear,
     uniq,
     values,
-    keyBy,
     fetchJSON,
-    each,
-    keys,
     flatten,
     sortBy
 } from "./Util"
@@ -37,10 +34,7 @@ import { AxisConfig, AxisConfigProps } from "./AxisConfig"
 import { ChartType, ChartTypeType } from "./ChartType"
 import { ChartTabOption } from "./ChartTabOption"
 import { OwidVariable, FilterPredicate } from "./owidData/OwidVariable"
-import {
-    OwidVariablesAndEntityKey,
-    EntityMeta
-} from "./owidData/OwidVariableSet"
+import { OwidVariablesAndEntityKey } from "./owidData/OwidVariableSet"
 import { ChartData } from "./ChartData"
 import { OwidTable } from "./owidData/OwidTable"
 import { ChartDimensionWithOwidVariable } from "./ChartDimensionWithOwidVariable"
@@ -310,11 +304,6 @@ export class ChartConfig {
     @observable.ref useTimelineDomains = false
 
     @observable.ref variablesById: { [id: number]: OwidVariable } = {}
-    @observable.ref entityMetaById: { [id: number]: EntityMeta } = {}
-
-    @computed get availableEntities(): string[] {
-        return keys(this.entityMetaByKey)
-    }
 
     @action.bound async downloadData() {
         if (this.props.externalDataUrl) {
@@ -344,7 +333,7 @@ export class ChartConfig {
         }
     }
 
-    table?: OwidTable
+    @observable.ref table: OwidTable = new OwidTable([], new Set())
 
     // Provide a way to insert an arbitrary element into the embed popup.
     // The "hideControls" property is a param on the explorer, so to maintain
@@ -357,12 +346,11 @@ export class ChartConfig {
         this.table.printStats()
 
         const variablesById: { [id: string]: OwidVariable } = {}
-        const entityMetaById: { [id: string]: EntityMeta } = json.entityKey
         const filters = this.filters
         for (const key in json.variables) {
             const variable = new OwidVariable(
                 json.variables[key]
-            ).setEntityNamesFromEntityMap(entityMetaById)
+            ).setEntityNamesAndCodesFromEntityMap(json.entityKey)
             variablesById[key] = variable
             if (filters.length)
                 variablesById[
@@ -371,9 +359,7 @@ export class ChartConfig {
                     this.isEntityFiltered(name)
                 )
         }
-        each(entityMetaById, (e, id) => (e.id = +id))
         this.variablesById = variablesById
-        this.entityMetaById = entityMetaById
     }
 
     isEntityFiltered(name: string) {
@@ -406,10 +392,6 @@ export class ChartConfig {
                     : true
             )
         return filters
-    }
-
-    @computed get entityMetaByKey() {
-        return keyBy(this.entityMetaById, "name")
     }
 
     @observable.ref setBaseFontSize: number = 16

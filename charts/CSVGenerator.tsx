@@ -45,7 +45,7 @@ export class CSVGenerator {
             indexingYears.forEach(year => {
                 const row: (string | number)[] = [
                     entity,
-                    chart.entityMetaByKey[entity].code ?? "",
+                    chart.table.entityNameToCodeMap.get(entity) ?? "",
                     chart.formatYearFunction(year)
                 ]
 

@@ -148,11 +148,9 @@ export class ScatterTransform extends ChartTransform {
 
     @computed get excludedEntities(): string[] {
         const entityIds = this.chart.props.excludedEntities || []
+        const entityNameMap = this.chart.table.entityIdToNameMap
         return entityIds
-            .map(id => {
-                const meta = this.chart.entityMetaById[id]
-                return meta && meta.name
-            })
+            .map(entityId => entityNameMap.get(entityId))
             .filter(d => d)
     }
 
