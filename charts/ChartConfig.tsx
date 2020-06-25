@@ -42,6 +42,7 @@ import {
     EntityMeta
 } from "./owidData/OwidVariableSet"
 import { ChartData } from "./ChartData"
+import { OwidTable } from "./owidData/OwidTable"
 import { ChartDimensionWithOwidVariable } from "./ChartDimensionWithOwidVariable"
 import { MapConfig, MapConfigProps } from "./MapConfig"
 import { ChartUrl, EntityUrlBuilder } from "./ChartUrl"
@@ -350,6 +351,8 @@ export class ChartConfig {
     @observable.ref embedExplorerCheckbox?: JSX.Element
 
     @action.bound receiveData(json: OwidVariablesAndEntityKey) {
+        const table = OwidTable.fromLegacy(json)
+
         const variablesById: { [id: string]: OwidVariable } = {}
         const entityMetaById: { [id: string]: EntityMeta } = json.entityKey
         const filters = this.filters
