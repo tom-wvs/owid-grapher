@@ -19,12 +19,10 @@ import {
     includes,
     uniqWith,
     isEqual,
-    first,
     defaultTo,
     formatDay,
     formatYear,
     uniq,
-    values,
     fetchJSON,
     flatten,
     sortBy
@@ -33,7 +31,6 @@ import { ComparisonLineConfig } from "./ComparisonLine"
 import { AxisConfig, AxisConfigProps } from "./AxisConfig"
 import { ChartType, ChartTypeType } from "./ChartType"
 import { ChartTabOption } from "./ChartTabOption"
-import { OwidVariable, FilterPredicate } from "./owidData/OwidVariable"
 import { OwidVariablesAndEntityKey } from "./owidData/OwidVariableSet"
 import { ChartData } from "./ChartData"
 import { OwidTable } from "./owidData/OwidTable"
@@ -69,7 +66,6 @@ import {
     subscribeChartToGlobalEntitySelection
 } from "site/client/global-entity/GlobalEntitySelection"
 import { TickFormattingOptions } from "./TickFormattingOptions"
-import { populationMap } from "./PopulationMap"
 import { ColorScaleConfigProps } from "./ColorScaleConfig"
 import { countries } from "utils/countries"
 import { DataTableTransform } from "./DataTableTransform"
@@ -341,23 +337,10 @@ export class ChartConfig {
 
     @action.bound receiveData(json: OwidVariablesAndEntityKey) {
         this.table = OwidTable.fromLegacy(json)
-        // this.table.printStats()
-
-        // const filters = this.filters
-        // if (filters.length)
-        //         variablesById[
-        //             key
-        //         ] = variable.getFilteredVariable((name: string) =>
-        //             this.isEntityFiltered(name)
-        //         )
-    }
-
-    isEntityFiltered(name: string) {
-        return this.filters.some(fn => fn(name) === false)
-    }
-
-    isEntitySelected(name: string) {
-        return this.selectedCountryNames.has(name)
+        this.table.applyFilters(
+            this.selectedCountryNames,
+            this.props.minPopulationFilter
+        )
     }
 
     @computed get selectedCountryNames() {
@@ -370,18 +353,6 @@ export class ChartConfig {
                 .filter(i => i)
                 .map(c => c!.name)
         )
-    }
-
-    @computed get filters() {
-        const filters: FilterPredicate[] = []
-        if (this.props.minPopulationFilter)
-            filters.push((name: string) =>
-                populationMap[name]
-                    ? populationMap[name] >= this.props.minPopulationFilter! ||
-                      this.isEntitySelected(name)
-                    : true
-            )
-        return filters
     }
 
     @observable.ref setBaseFontSize: number = 16

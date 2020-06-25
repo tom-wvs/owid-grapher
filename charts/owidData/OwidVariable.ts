@@ -4,8 +4,6 @@ import { EPOCH_DATE } from "settings"
 import { OwidSource } from "./OwidSource"
 import { EntityMeta } from "./OwidVariableSet"
 
-export declare type FilterPredicate = (entityName: string) => boolean
-
 export class OwidVariableDisplaySettings {
     @observable name?: string = undefined
     @observable unit?: string = undefined
@@ -79,28 +77,6 @@ export class OwidVariable {
         return this.rawYears
     }
 
-    private getFilteredValues(isEntityFiltered: FilterPredicate) {
-        const filteredEntities = new Map<string, boolean>()
-        const indicesToKeep: number[] = this.entityNames
-            .map((name, index) => {
-                if (filteredEntities.get(name) === undefined)
-                    filteredEntities.set(name, isEntityFiltered(name))
-                return filteredEntities.get(name) ? null : index
-            })
-            .filter(i => i !== null) as number[]
-        const years: number[] = []
-        const entityNames: string[] = []
-        const entities: number[] = []
-        const values: (string | number)[] = []
-        indicesToKeep.forEach(index => {
-            years.push(this.years[index])
-            entityNames.push(this.entityNames[index])
-            entities.push(this.entities[index])
-            values.push(this.values[index])
-        })
-        return { years, entityNames, entities, values }
-    }
-
     // Todo: would be great if we could remove the need for this and just include entity names directly in the data
     setEntityNamesAndCodesFromEntityMap(entityMap: {
         [id: string]: EntityMeta
@@ -108,23 +84,5 @@ export class OwidVariable {
         this.entityNames = this.entities.map(id => entityMap[id].name)
         this.entityCodes = this.entities.map(id => entityMap[id].code)
         return this
-    }
-
-    getFilteredVariable(isEntityFiltered: FilterPredicate): OwidVariable {
-        const clone: any = {}
-        // Todo: selectively clone values of the properties we need.
-        // Right now we don't need to but in the future could lead to ref bugs.
-        for (const key in this) {
-            clone[key] = this[key]
-        }
-
-        const { years, entityNames, entities, values } = this.getFilteredValues(
-            isEntityFiltered
-        )
-        clone.years = years
-        clone.entityNames = entityNames
-        clone.entities = entities
-        clone.values = values
-        return new OwidVariable(clone)
     }
 }

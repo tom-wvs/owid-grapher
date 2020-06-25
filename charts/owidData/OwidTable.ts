@@ -1,9 +1,10 @@
 import { OwidVariablesAndEntityKey, EntityMeta } from "./OwidVariableSet"
 import { OwidVariable, OwidVariableDisplaySettings } from "./OwidVariable"
-import { slugify, groupBy } from "charts/Util"
+import { slugify, groupBy, guid } from "charts/Util"
 import { max, min } from "lodash"
-import { computed } from "mobx"
+import { computed, action } from "mobx"
 import { OwidSource } from "./OwidSource"
+import { populationMap } from "charts/PopulationMap"
 
 declare type int = number
 declare type year = int
@@ -21,6 +22,7 @@ interface OwidRow extends Row {
     year?: year
     day?: int
     date?: string
+    _guid: int
     _selected?: boolean
     _filtered?: boolean
     _color?: color
@@ -130,7 +132,9 @@ export abstract class AbstractColumn {
 
     @computed private get rows() {
         const slug = this.spec.slug
-        return this.table.rows.filter(row => row[slug] !== undefined)
+        return this.table.rows.filter(
+            row => row[slug] !== undefined && !row._filtered
+        )
     }
 
     @computed get values() {
@@ -170,6 +174,33 @@ export class OwidTable extends AbstractTable<OwidRow> {
         })
         return map
     }
+
+    private _filterCount = 0
+    @action.bound applyFilters(
+        selectedCountryNames: Set<string>,
+        minPopulationSize?: int
+    ) {
+        if (minPopulationSize === undefined && !this._filterCount) return this
+        this._filterCount = 0
+        this.rows.forEach(row => {
+            const name = row.entityName
+            const filter = populationMap[name]
+                ? populationMap[name] < minPopulationSize! &&
+                  !selectedCountryNames.has(name)
+                : false
+            row._filtered = filter
+            this._filterCount++
+        })
+        return this
+    }
+
+    // const filters = this.filters
+    // if (filters.length)
+    //         variablesById[
+    //             key
+    //         ] = variable.getFilteredVariable((name: string) =>
+    //             this.isEntityFiltered(name)
+    //         )
 
     @computed get columnsByName() {
         const columns = this.columnsByVarId
@@ -344,6 +375,7 @@ export class OwidTable extends AbstractTable<OwidRow> {
             const newRows = variable.values.map((value, index) => {
                 const entityName = variable.entityNames[index]
                 const row: any = {
+                    _guid: guid(),
                     [timeColumnName]: variable.years[index],
                     [columnSlug]: value,
                     entityName,
