@@ -50,11 +50,7 @@ export class ChartData {
 
     // ChartData is ready to go iff we have retrieved data for every variable associated with the chart
     @computed get isReady(): boolean {
-        const { chart } = this
-        return every(
-            chart.dimensions,
-            dim => !!chart.variablesById[dim.variableId]
-        )
+        return !this.chart.table.isEmpty()
     }
 
     @computed.struct get filledDimensions(): ChartDimensionWithOwidVariable[] {
@@ -536,11 +532,9 @@ export class ChartData {
         }
     }
 
-    @computed get primaryVariable() {
+    @computed get primaryVariableId() {
         const yDimension = find(this.chart.dimensions, { property: "y" })
-        return yDimension
-            ? this.chart.variablesById[yDimension.variableId]
-            : undefined
+        return yDimension ? yDimension.variableId : undefined
     }
 
     @computed get sourcesWithDimension(): SourceWithDimension[] {

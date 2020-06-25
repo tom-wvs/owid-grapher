@@ -33,13 +33,22 @@ interface OwidTripletTable {
     value: AbstractColumn
 }
 
+interface ColumnSpec {
+    slug: columnName
+    name: string
+}
+
 abstract class AbstractColumn {
-    name: columnName
+    private spec: ColumnSpec
     table: OwidTable
 
-    constructor(table: OwidTable, name: columnName) {
+    constructor(table: OwidTable, spec: ColumnSpec) {
         this.table = table
-        this.name = name
+        this.spec = spec
+    }
+
+    @computed get name() {
+        return this.spec.name ?? this.spec.slug
     }
 
     @computed get entityNames() {
@@ -54,14 +63,14 @@ abstract class AbstractColumn {
         return this.rows.map(row => (row.year ?? row.day)!)
     }
 
-    @computed get rows() {
-        const name = this.name
+    @computed private get rows() {
+        const slug = this.spec.slug
         return this.table.rows.filter(row => row[name] !== undefined)
     }
 
     @computed get values() {
-        const name = this.name
-        return this.rows.map(row => row[name])
+        const slug = this.spec.slug
+        return this.rows.map(row => row[slug])
     }
 }
 
@@ -79,14 +88,18 @@ abstract class AbstractTable<ROW_TYPE> {
         this.rows = rows
         this.columnNames = columnNames
     }
+
+    isEmpty() {
+        return this.rows.length === 0
+    }
 }
 
 export class OwidTable extends AbstractTable<OwidRow> {
     @computed get columns() {
         const map = new Map<number, AbstractColumn>()
-        this.columnNames.forEach(name => {
-            const id = parseInt(name.split("-")[0])
-            map.set(id, new StringColumn(this, name))
+        this.columnNames.forEach(slug => {
+            const id = parseInt(slug.split("-")[0])
+            map.set(id, new StringColumn(this, {slug, name: slug))
         })
         return map
     }
