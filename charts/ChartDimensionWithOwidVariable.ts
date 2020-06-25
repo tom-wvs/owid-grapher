@@ -14,12 +14,11 @@ import {
 } from "./Util"
 import { ChartDimension } from "./ChartDimension"
 import { TickFormattingOptions } from "./TickFormattingOptions"
-import { OwidTable } from "./owidData/OwidTable"
+import { OwidTable, AbstractColumn } from "./owidData/OwidTable"
 
 export class ChartDimensionWithOwidVariable {
     props: ChartDimension
     @observable.ref index: number
-    @observable.ref private variable: OwidVariable
 
     @computed get variableId(): number {
         return this.props.variableId
@@ -128,7 +127,7 @@ export class ChartDimensionWithOwidVariable {
             else
                 return formatValue(value, {
                     unit: shortUnit,
-                    numDecimalPlaces: numDecimalPlaces,
+                    numDecimalPlaces,
                     ...options
                 })
         }
@@ -217,21 +216,15 @@ export class ChartDimensionWithOwidVariable {
         return valueByEntityAndYear
     }
 
-    private table: OwidTable
+    @observable.ref column: AbstractColumn
 
     constructor(
         index: number,
         dimension: ChartDimension,
-        variable: OwidVariable,
-        table: OwidTable
+        column: AbstractColumn
     ) {
         this.index = index
         this.props = dimension
-        this.variable = variable
-        this.table = table
-    }
-
-    @computed get column() {
-        return this.table.columns.get(this.variable.id)!
+        this.column = column
     }
 }

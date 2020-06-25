@@ -186,12 +186,20 @@ export async function countryProfilePage(countrySlug: string) {
             const latestValue = values[0]
             const variable = variablesById[vid]
 
+            // todo: this is a lot of setup to get formatValueShort. Maybe cleanup?
+            const spec = new Map()
+            spec.set(variable.name, {
+                unit: variable.unit,
+                display: variable.display
+            })
+            const column = new OwidTable([], spec)
             const dim = new ChartDimensionWithOwidVariable(
                 0,
                 c.dimensions[0],
-                variable as any,
-                new OwidTable([], new Map()) // todo: might need to cleanup
+                column.columnsBySlug.get(variable.name)!
             )
+
+            const formatValueShort = dim.formatValueShort
 
             let value: string | number
             value = parseFloat(latestValue.value)
@@ -203,7 +211,7 @@ export async function countryProfilePage(countrySlug: string) {
 
             indicators.push({
                 year: latestValue.year,
-                value: dim.formatValueShort(value),
+                value: formatValueShort(value),
                 name: c.title as string,
                 slug: `/grapher/${c.slug}?tab=chart&country=${country.code}`,
                 variantName: c.variantName

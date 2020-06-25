@@ -61,8 +61,7 @@ export class ChartData {
             return new ChartDimensionWithOwidVariable(
                 i,
                 dim,
-                variable,
-                this.chart.table
+                this.chart.table.columns.get(variable.id)!
             )
         })
     }

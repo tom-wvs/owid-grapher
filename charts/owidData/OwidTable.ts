@@ -38,6 +38,7 @@ interface OwidTripletTable {
 interface ColumnSpec {
     slug: columnSlug
     name: string
+    owidVariableId?: int
     unit?: string
     shortUnit?: string
     isDailyMeasurement?: boolean
@@ -49,7 +50,7 @@ interface ColumnSpec {
     display?: OwidVariableDisplaySettings
 }
 
-abstract class AbstractColumn {
+export abstract class AbstractColumn {
     private spec: ColumnSpec
     table: OwidTable
 
@@ -167,9 +168,9 @@ abstract class AbstractTable<ROW_TYPE> {
 export class OwidTable extends AbstractTable<OwidRow> {
     @computed get columns() {
         const map = new Map<number, AbstractColumn>()
-        this.columnNames.forEach(slug => {
-            const id = parseInt(slug.split("-")[0])
-            map.set(id, new StringColumn(this, this.spec.get(slug)!))
+        Array.from(this.spec.keys()).forEach(slug => {
+            const spec = this.spec.get(slug)!
+            map.set(spec?.owidVariableId!, new StringColumn(this, spec))
         })
         return map
     }
@@ -289,7 +290,7 @@ export class OwidTable extends AbstractTable<OwidRow> {
             const variable = new OwidVariable(
                 json.variables[key]
             ).setEntityNamesAndCodesFromEntityMap(entityMetaById)
-            const columnName = variable.id + "-" + slugify(variable.name)
+            const columnName = variable.id + "-" + slugify(variable.name) // todo: remove?
             const isDailyMeasurement = variable.display.yearIsDay
             const timeColumnName = isDailyMeasurement ? "day" : "year"
             isDailyMeasurement
@@ -317,7 +318,8 @@ export class OwidTable extends AbstractTable<OwidRow> {
                 datasetId,
                 datasetName,
                 display,
-                source
+                source,
+                owidVariableId: variable.id
             })
 
             let annotationColumnName: string
