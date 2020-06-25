@@ -32,7 +32,7 @@ export class ChartDimensionWithOwidVariable {
     @computed get displayName(): string {
         return defaultTo(
             defaultTo(this.props.display.name, this.variable.display.name),
-            this.variable.name
+            this.column.name
         )
     }
 
@@ -46,7 +46,7 @@ export class ChartDimensionWithOwidVariable {
     @computed get unit(): string {
         return defaultTo(
             defaultTo(this.props.display.unit, this.variable.display.unit),
-            this.variable.unit
+            this.column.unit
         )
     }
 

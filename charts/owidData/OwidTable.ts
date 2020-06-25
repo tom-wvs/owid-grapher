@@ -56,7 +56,7 @@ abstract class AbstractColumn {
     }
 
     @computed get unit() {
-        return this.spec.unit
+        return this.spec.unit || ""
     }
 
     @computed get coverage() {
