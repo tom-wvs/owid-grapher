@@ -79,19 +79,6 @@ export class OwidVariable {
         return this.rawYears
     }
 
-    @computed get annotationMap() {
-        const map = new Map()
-        if (!this.display.entityAnnotationsMap) return map
-        const delimiter = ":"
-        this.display.entityAnnotationsMap.split("\n").forEach(line => {
-            const [key, ...words] = line
-                .split(delimiter)
-                .map(word => word.trim())
-            map.set(key, words.join(delimiter))
-        })
-        return map
-    }
-
     private getFilteredValues(isEntityFiltered: FilterPredicate) {
         const filteredEntities = new Map<string, boolean>()
         const indicesToKeep: number[] = this.entityNames

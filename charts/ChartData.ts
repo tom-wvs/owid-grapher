@@ -431,7 +431,7 @@ export class ChartData {
 
         const keyData = new Map<EntityDimensionKey, EntityDimensionInfo>()
         primaryDimensions.forEach((dimension, dimensionIndex) => {
-            const annotationMap = dimension.variable.annotationMap
+            const annotationMap = dimension.column.annotationsMap
             dimension.entitiesUniq.forEach(entityName => {
                 const entityCode = chart.table.entityNameToCodeMap.get(
                     entityName
@@ -453,13 +453,11 @@ export class ChartData {
                     label = `${dimension.displayName}`
                 }
 
-                const annotationKey = entityName
-
                 keyData.set(entityDimensionKey, {
                     entityDimensionKey,
                     entityId,
                     entity: entityName,
-                    annotation: annotationMap.get(annotationKey),
+                    annotation: annotationMap && annotationMap.get(entityName),
                     dimension,
                     index: dimensionIndex,
                     fullLabel,
@@ -542,11 +540,11 @@ export class ChartData {
 
         const sources: SourceWithDimension[] = []
         each(filledDimensions, dim => {
-            const { variable } = dim
+            const { variable, column } = dim
             // HACK (Mispy): Ignore the default color source on scatterplots.
             if (
-                variable.name !== "Countries Continents" &&
-                variable.name !== "Total population (Gapminder)"
+                column.name !== "Countries Continents" &&
+                column.name !== "Total population (Gapminder)"
             )
                 sources.push({ source: variable.source, dimension: dim })
         })

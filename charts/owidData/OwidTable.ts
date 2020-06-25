@@ -3,11 +3,12 @@ import { OwidVariable } from "./OwidVariable"
 import { slugify, groupBy } from "charts/Util"
 import { max, min } from "lodash"
 import { computed } from "mobx"
+import { OwidSource } from "./OwidSource"
 
 declare type int = number
 declare type year = int
 declare type color = string
-declare type columnName = string // let's be very restrictive on valid column names to start.
+declare type columnSlug = string // let's be very restrictive on valid column names to start.
 
 interface Row {
     [columnName: string]: any
@@ -23,6 +24,7 @@ interface OwidRow extends Row {
     _selected?: boolean
     _filtered?: boolean
     _color?: color
+    annotation?: string
     // _x: boolean
     // _y: boolean
 }
@@ -34,8 +36,14 @@ interface OwidTripletTable {
 }
 
 interface ColumnSpec {
-    slug: columnName
+    slug: columnSlug
     name: string
+    unit?: string
+    description?: string
+    coverage?: string
+    datasetId?: int
+    datasetName?: string
+    source?: OwidSource
 }
 
 abstract class AbstractColumn {
@@ -47,8 +55,41 @@ abstract class AbstractColumn {
         this.spec = spec
     }
 
+    @computed get unit() {
+        return this.spec.unit
+    }
+
+    @computed get coverage() {
+        return this.spec.coverage
+    }
+
+    @computed get annotationsMap() {
+        const columnSlug = OwidTable.makeAnnotationColumnSlug(this.slug)
+        const column = this.table.columnsBySlug.get(columnSlug)
+        return column ? column.entityMap : undefined
+    }
+
+    @computed get entityMap() {
+        const map = new Map<string, any>()
+        const slug = this.slug
+        this.rows.forEach(row => map.set(row.entityName, row[slug]))
+        return map
+    }
+
+    @computed get description() {
+        return this.spec.description
+    }
+
+    @computed get datasetId() {
+        return this.spec.datasetId
+    }
+
     @computed get name() {
         return this.spec.name ?? this.spec.slug
+    }
+
+    @computed get slug() {
+        return this.spec.slug
     }
 
     @computed get entityNames() {
@@ -81,12 +122,18 @@ class NumberColumn extends AbstractColumn {}
 class StringColumn extends AbstractColumn {}
 class EntityColumn extends AbstractColumn {}
 
+declare type TableSpec = Map<columnSlug, ColumnSpec>
+
 abstract class AbstractTable<ROW_TYPE> {
     rows: ROW_TYPE[]
-    columnNames: Set<string>
-    constructor(rows: ROW_TYPE[], columnNames: Set<string>) {
+    spec: TableSpec
+    constructor(rows: ROW_TYPE[], specs: TableSpec) {
         this.rows = rows
-        this.columnNames = columnNames
+        this.spec = specs
+    }
+
+    @computed get columnNames() {
+        return new Set(this.spec.keys())
     }
 
     isEmpty() {
@@ -109,6 +156,15 @@ export class OwidTable extends AbstractTable<OwidRow> {
         const map = new Map<string, AbstractColumn>()
         columns.forEach(col => {
             map.set(col.name, col)
+        })
+        return map
+    }
+
+    @computed get columnsBySlug() {
+        const columns = this.columns
+        const map = new Map<columnSlug, AbstractColumn>()
+        columns.forEach(col => {
+            map.set(col.slug, col)
         })
         return map
     }
@@ -175,28 +231,63 @@ export class OwidTable extends AbstractTable<OwidRow> {
         return this.columnNames.has("day")
     }
 
+    private static annotationsToMap(annotations: string) {
+        // Todo: let's delete this and switch to traditional columns
+        const entityAnnotationsMap = new Map<string, string>()
+            const delimiter = ":"
+            annotations.split("\n").forEach(line => {
+                const [key, ...words] = line
+                    .split(delimiter)
+                    .map(word => word.trim())
+                entityAnnotationsMap.set(key, words.join(delimiter))
+            })
+        return entityAnnotationsMap
+    }
+
+    static makeAnnotationColumnSlug(columnSlug: columnSlug) {
+        return columnSlug + "-annotations"
+    }
+
     static fromLegacy(json: OwidVariablesAndEntityKey) {
         let rows: OwidRow[] = []
         const entityMetaById: { [id: string]: EntityMeta } = json.entityKey
-        const columnNames = new Set(["entityName", "entityId", "entityCode"])
+        const columnSpecs = new Map()
+        columnSpecs.set("entityName", {name: "entityName", slug: "entityName"})
+        columnSpecs.set("entityId", {name: "entityId", slug: "entityId"})
+        columnSpecs.set("entityCode", {name: "entityCode", slug: "entityCode"})
+        
         for (const key in json.variables) {
             const variable = new OwidVariable(
                 json.variables[key]
             ).setEntityNamesAndCodesFromEntityMap(entityMetaById)
             const columnName = variable.id + "-" + slugify(variable.name)
             variable.display.yearIsDay
-                ? columnNames.add("day")
-                : columnNames.add("year")
-            columnNames.add(columnName)
+                ? columnSpecs.set("day", {name: "day", slug: "day"})
+                : columnSpecs.set("year", {name: "year", slug: "year"})
+            const {unit, description, coverage, datasetId, datasetName, source} = variable
+            columnSpecs.set(columnName, {name: variable.name, slug: columnName, unit, description, coverage, datasetId, datasetName, source})
+            
+            let annotationColumnName: string
+            let annotationMap: Map<string, string>
+            if (variable.display.entityAnnotationsMap) {
+                annotationColumnName = this.makeAnnotationColumnSlug(columnName + "-annotations")
+                annotationMap = this.annotationsToMap(variable.display.entityAnnotationsMap)
+                columnSpecs.set(annotationColumnName, {name: annotationColumnName, slug: annotationColumnName})
+            }
+            
             const newRows = variable.values.map((value, index) => {
                 const timePart = variable.display.yearIsDay ? "day" : "year"
-                return {
+                const entityName = variable.entityNames[index]
+                const row: any = {
                     [timePart]: variable.years[index],
                     [columnName]: value,
-                    entityName: variable.entityNames[index],
+                    entityName,
                     entityId: variable.entities[index],
                     entityCode: variable.entityCodes[index]
                 }
+                if (annotationColumnName)
+                    row[annotationColumnName] = annotationMap.get(entityName)
+                return row
             })
             rows = rows.concat(newRows)
         }
@@ -206,10 +297,10 @@ export class OwidTable extends AbstractTable<OwidRow> {
             return timePart + " " + row.entityName
         })
 
-        const joinedRows = Object.keys(groupMap).map(groupKey =>
+        const joinedRows: OwidRow[] = Object.keys(groupMap).map(groupKey =>
             Object.assign({}, ...groupMap[groupKey])
         )
 
-        return new OwidTable(joinedRows, columnNames)
+        return new OwidTable(joinedRows, columnSpecs)
     }
 }
