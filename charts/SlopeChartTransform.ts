@@ -47,9 +47,7 @@ export class SlopeChartTransform extends ChartTransform {
     }
 
     @computed get availableYears(): Time[] {
-        return flatten(
-            this.chart.data.axisDimensions.map(d => d.variable.yearsUniq)
-        )
+        return flatten(this.chart.data.axisDimensions.map(d => d.yearsUniq))
     }
 
     @computed.struct get xDomain(): [number, number] {

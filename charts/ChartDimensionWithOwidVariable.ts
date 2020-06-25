@@ -14,6 +14,7 @@ import {
 } from "./Util"
 import { ChartDimension } from "./ChartDimension"
 import { TickFormattingOptions } from "./TickFormattingOptions"
+import { OwidTable } from "./owidData/OwidTable"
 
 export class ChartDimensionWithOwidVariable {
     props: ChartDimension
@@ -161,10 +162,10 @@ export class ChartDimensionWithOwidVariable {
     @computed get values() {
         const { unitConversionFactor } = this
         if (unitConversionFactor !== 1)
-            return this.variable.values.map(
+            return this.column.values.map(
                 v => (v as number) * unitConversionFactor
             )
-        else return this.variable.values
+        else return this.column.values
     }
 
     @computed get sortedNumericValues(): number[] {
@@ -176,19 +177,19 @@ export class ChartDimensionWithOwidVariable {
     }
 
     get yearsUniq() {
-        return this.variable.yearsUniq
-    }
-
-    get entitiesUniq() {
-        return this.variable.entitiesUniq
+        return sortedUniq(this.years)
     }
 
     get years() {
-        return this.variable.years
+        return this.column.years
+    }
+
+    get entitiesUniq() {
+        return Array.from(this.column.entitiesUniq)
     }
 
     get entityNames() {
-        return this.variable.entityNames
+        return this.column.entityNames
     }
 
     yearAndValueOfLatestValueforEntity(entity: string) {
@@ -219,13 +220,21 @@ export class ChartDimensionWithOwidVariable {
         return valueByEntityAndYear
     }
 
+    private table: OwidTable
+
     constructor(
         index: number,
         dimension: ChartDimension,
-        variable: OwidVariable
+        variable: OwidVariable,
+        table: OwidTable
     ) {
         this.index = index
         this.props = dimension
         this.variable = variable
+        this.table = table
+    }
+
+    @computed get column() {
+        return this.table.columns.get(this.variable.id)!
     }
 }

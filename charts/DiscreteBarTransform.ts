@@ -27,9 +27,7 @@ export class DiscreteBarTransform extends ChartTransform {
     }
 
     @computed get availableYears(): Time[] {
-        return flatten(
-            this.primaryDimensions.map(dim => dim.variable.yearsUniq)
-        )
+        return flatten(this.primaryDimensions.map(dim => dim.yearsUniq))
     }
 
     @computed get hasTimeline(): boolean {

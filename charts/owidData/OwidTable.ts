@@ -6,6 +6,7 @@ import { computed } from "mobx"
 
 declare type int = number
 declare type year = int
+declare type color = string
 declare type columnName = string // let's be very restrictive on valid column names to start.
 
 interface Row {
@@ -20,6 +21,9 @@ interface OwidRow extends Row {
     day?: string
     _selected?: boolean
     _filtered?: boolean
+    _color?: color
+    // _x: boolean
+    // _y: boolean
 }
 
 interface OwidTripletTable {
@@ -29,11 +33,34 @@ interface OwidTripletTable {
 }
 
 abstract class AbstractColumn {
-    name: columnName = ""
+    name: columnName
     table: OwidTable
 
-    constructor(table: OwidTable) {
+    constructor(table: OwidTable, name: columnName) {
         this.table = table
+        this.name = name
+    }
+
+    @computed get entityNames() {
+        return this.rows.map(row => row.entityName)
+    }
+
+    @computed get entitiesUniq() {
+        return new Set(this.entityNames)
+    }
+
+    @computed get years() {
+        return this.rows.map(row => row.year ?? row.day)
+    }
+
+    @computed get rows() {
+        const name = this.name
+        return this.table.rows.filter(row => row[name] !== undefined)
+    }
+
+    @computed get values() {
+        const name = this.name
+        return this.rows.map(row => row[name])
     }
 }
 
@@ -54,6 +81,15 @@ abstract class AbstractTable<ROW_TYPE> {
 }
 
 export class OwidTable extends AbstractTable<OwidRow> {
+    @computed get columns() {
+        const map = new Map<number, AbstractColumn>()
+        this.columnNames.forEach(name => {
+            const id = parseInt(name.split("-")[0])
+            map.set(id, new StringColumn(this, name))
+        })
+        return map
+    }
+
     printStats() {
         console.log(this.minYear, this.maxYear)
         console.log(this.toDelimited(",", 10))

@@ -1,15 +1,4 @@
-import {
-    extend,
-    some,
-    isString,
-    isNumber,
-    uniq,
-    sortedUniq,
-    min,
-    max,
-    sortBy,
-    diffDateISOStringInDays
-} from "../Util"
+import { extend, uniq, sortedUniq, diffDateISOStringInDays } from "../Util"
 import { observable, computed } from "mobx"
 import { EPOCH_DATE } from "settings"
 import { OwidSource } from "./OwidSource"
@@ -101,10 +90,6 @@ export class OwidVariable {
             map.set(key, words.join(delimiter))
         })
         return map
-    }
-
-    @computed get entitiesUniq(): string[] {
-        return uniq(this.entityNames)
     }
 
     private getFilteredValues(isEntityFiltered: FilterPredicate) {

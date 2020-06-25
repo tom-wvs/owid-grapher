@@ -92,7 +92,7 @@ export class MapData extends ChartTransform {
         const idLookup = keyBy(
             MapTopology.objects.world.geometries.map((g: any) => g.id)
         )
-        const entities = this.dimension.variable.entitiesUniq.filter(
+        const entities = this.dimension.entitiesUniq.filter(
             e => !!idLookup[entityNameForMap(e)]
         )
         return keyBy(entities)
@@ -103,7 +103,7 @@ export class MapData extends ChartTransform {
         if (!this.dimension) return {}
 
         const entities: { [id: string]: string } = {}
-        for (const entity of this.dimension.variable.entitiesUniq) {
+        for (const entity of this.dimension.entitiesUniq) {
             entities[entityNameForMap(entity)] = entity
         }
         return entities

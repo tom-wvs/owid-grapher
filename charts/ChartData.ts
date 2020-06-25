@@ -62,7 +62,12 @@ export class ChartData {
 
         return map(this.chart.dimensions, (dim, i) => {
             const variable = this.chart.variablesById[dim.variableId]
-            return new ChartDimensionWithOwidVariable(i, dim, variable)
+            return new ChartDimensionWithOwidVariable(
+                i,
+                dim,
+                variable,
+                this.chart.table
+            )
         })
     }
 
@@ -259,10 +264,7 @@ export class ChartData {
 
             // Entity must be within that dimension
             const entityName = entityIdToNameMap.get(sel.entityId)
-            if (
-                !entityName ||
-                !includes(dimension.variable.entitiesUniq, entityName)
-            )
+            if (!entityName || !includes(dimension.entitiesUniq, entityName))
                 return false
 
             // "change entity" charts can only have one entity selected
@@ -434,7 +436,7 @@ export class ChartData {
         const keyData = new Map<EntityDimensionKey, EntityDimensionInfo>()
         primaryDimensions.forEach((dimension, dimensionIndex) => {
             const annotationMap = dimension.variable.annotationMap
-            dimension.variable.entitiesUniq.forEach(entityName => {
+            dimension.entitiesUniq.forEach(entityName => {
                 const entityCode = chart.table.entityNameToCodeMap.get(
                     entityName
                 )

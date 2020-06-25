@@ -133,12 +133,8 @@ export class ScatterTransform extends ChartTransform {
         return this.chart.addCountryMode === "disabled"
     }
     @computed private get possibleEntities(): string[] {
-        const yEntities = this.yDimension
-            ? this.yDimension.variable.entitiesUniq
-            : []
-        const xEntities = this.xDimension
-            ? this.xDimension.variable.entitiesUniq
-            : []
+        const yEntities = this.yDimension ? this.yDimension.entitiesUniq : []
+        const xEntities = this.xDimension ? this.xDimension.entitiesUniq : []
         return intersection(yEntities, xEntities)
     }
 
@@ -162,10 +158,7 @@ export class ScatterTransform extends ChartTransform {
             : this.possibleEntities
 
         if (this.chart.props.matchingEntitiesOnly && this.colorDimension)
-            entities = intersection(
-                entities,
-                this.colorDimension.variable.entitiesUniq
-            )
+            entities = intersection(entities, this.colorDimension.entitiesUniq)
 
         if (this.excludedEntities)
             entities = entities.filter(
