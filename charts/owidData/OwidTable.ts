@@ -114,7 +114,7 @@ abstract class AbstractColumn {
 
     @computed private get rows() {
         const slug = this.spec.slug
-        return this.table.rows.filter(row => row[name] !== undefined)
+        return this.table.rows.filter(row => row[slug] !== undefined)
     }
 
     @computed get values() {
@@ -154,7 +154,7 @@ export class OwidTable extends AbstractTable<OwidRow> {
         const map = new Map<number, AbstractColumn>()
         this.columnNames.forEach(slug => {
             const id = parseInt(slug.split("-")[0])
-            map.set(id, new StringColumn(this, {slug, name: slug))
+            map.set(id, new StringColumn(this, { slug, name: slug }))
         })
         return map
     }
@@ -242,13 +242,13 @@ export class OwidTable extends AbstractTable<OwidRow> {
     private static annotationsToMap(annotations: string) {
         // Todo: let's delete this and switch to traditional columns
         const entityAnnotationsMap = new Map<string, string>()
-            const delimiter = ":"
-            annotations.split("\n").forEach(line => {
-                const [key, ...words] = line
-                    .split(delimiter)
-                    .map(word => word.trim())
-                entityAnnotationsMap.set(key, words.join(delimiter))
-            })
+        const delimiter = ":"
+        annotations.split("\n").forEach(line => {
+            const [key, ...words] = line
+                .split(delimiter)
+                .map(word => word.trim())
+            entityAnnotationsMap.set(key, words.join(delimiter))
+        })
         return entityAnnotationsMap
     }
 
@@ -260,29 +260,58 @@ export class OwidTable extends AbstractTable<OwidRow> {
         let rows: OwidRow[] = []
         const entityMetaById: { [id: string]: EntityMeta } = json.entityKey
         const columnSpecs = new Map()
-        columnSpecs.set("entityName", {name: "entityName", slug: "entityName"})
-        columnSpecs.set("entityId", {name: "entityId", slug: "entityId"})
-        columnSpecs.set("entityCode", {name: "entityCode", slug: "entityCode"})
-        
+        columnSpecs.set("entityName", {
+            name: "entityName",
+            slug: "entityName"
+        })
+        columnSpecs.set("entityId", { name: "entityId", slug: "entityId" })
+        columnSpecs.set("entityCode", {
+            name: "entityCode",
+            slug: "entityCode"
+        })
+
         for (const key in json.variables) {
             const variable = new OwidVariable(
                 json.variables[key]
             ).setEntityNamesAndCodesFromEntityMap(entityMetaById)
             const columnName = variable.id + "-" + slugify(variable.name)
             variable.display.yearIsDay
-                ? columnSpecs.set("day", {name: "day", slug: "day"})
-                : columnSpecs.set("year", {name: "year", slug: "year"})
-            const {unit, description, coverage, datasetId, datasetName, source} = variable
-            columnSpecs.set(columnName, {name: variable.name, slug: columnName, unit, description, coverage, datasetId, datasetName, source})
-            
+                ? columnSpecs.set("day", { name: "day", slug: "day" })
+                : columnSpecs.set("year", { name: "year", slug: "year" })
+            const {
+                unit,
+                description,
+                coverage,
+                datasetId,
+                datasetName,
+                source
+            } = variable
+            columnSpecs.set(columnName, {
+                name: variable.name,
+                slug: columnName,
+                unit,
+                description,
+                coverage,
+                datasetId,
+                datasetName,
+                source
+            })
+
             let annotationColumnName: string
             let annotationMap: Map<string, string>
             if (variable.display.entityAnnotationsMap) {
-                annotationColumnName = this.makeAnnotationColumnSlug(columnName + "-annotations")
-                annotationMap = this.annotationsToMap(variable.display.entityAnnotationsMap)
-                columnSpecs.set(annotationColumnName, {name: annotationColumnName, slug: annotationColumnName})
+                annotationColumnName = this.makeAnnotationColumnSlug(
+                    columnName + "-annotations"
+                )
+                annotationMap = this.annotationsToMap(
+                    variable.display.entityAnnotationsMap
+                )
+                columnSpecs.set(annotationColumnName, {
+                    name: annotationColumnName,
+                    slug: annotationColumnName
+                })
             }
-            
+
             const newRows = variable.values.map((value, index) => {
                 const timePart = variable.display.yearIsDay ? "day" : "year"
                 const entityName = variable.entityNames[index]

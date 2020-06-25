@@ -190,7 +190,7 @@ export async function countryProfilePage(countrySlug: string) {
                 0,
                 c.dimensions[0],
                 variable as any,
-                new OwidTable([], new Set()) // todo: might need to cleanup
+                new OwidTable([], new Map()) // todo: might need to cleanup
             )
 
             let value: string | number
