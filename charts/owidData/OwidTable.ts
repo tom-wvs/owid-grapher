@@ -120,7 +120,7 @@ export class OwidTable extends AbstractTable<OwidRow> {
             const variable = new OwidVariable(
                 json.variables[key]
             ).setEntityNamesAndCodesFromEntityMap(entityMetaById)
-            const columnName = slugify(variable.name)
+            const columnName = variable.id + "-" + slugify(variable.name)
             variable.display.yearIsDay
                 ? columnNames.add("day")
                 : columnNames.add("year")

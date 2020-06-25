@@ -103,22 +103,6 @@ export class OwidVariable {
         return map
     }
 
-    @computed get hasNumericValues(): boolean {
-        return some(this.values, v => isFinite(v as number))
-    }
-
-    @computed get numericValues(): number[] {
-        return sortBy(this.values.filter(v => isNumber(v))) as number[]
-    }
-
-    @computed get categoricalValues(): string[] {
-        return uniq(this.values.filter(v => isString(v))) as string[]
-    }
-
-    @computed get hasCategoricalValues(): boolean {
-        return some(this.values, v => isString(v))
-    }
-
     @computed get entitiesUniq(): string[] {
         return uniq(this.entityNames)
     }
@@ -174,41 +158,5 @@ export class OwidVariable {
 
     @computed get yearsUniq(): number[] {
         return sortedUniq(this.years)
-    }
-
-    @computed get minYear(): number {
-        return min(this.yearsUniq) as number
-    }
-
-    @computed get maxYear(): number {
-        return max(this.yearsUniq) as number
-    }
-
-    @computed get minValue(): number {
-        return min(this.numericValues) as number
-    }
-
-    @computed get maxValue(): number {
-        return max(this.numericValues) as number
-    }
-
-    @computed get isNumeric(): boolean {
-        return this.hasNumericValues && !this.hasCategoricalValues
-    }
-
-    toCsv(): string {
-        const header = `entityName,entity,year,value\n`
-        const { entityNames, entities, values, years } = this
-        const body = values
-            .map((_, index) =>
-                [
-                    entityNames[index],
-                    entities[index],
-                    years[index],
-                    values[index]
-                ].join(",")
-            )
-            .join("\n")
-        return header + body
     }
 }
