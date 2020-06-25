@@ -44,7 +44,7 @@ interface ColumnSpec {
     isDailyMeasurement?: boolean
     description?: string
     coverage?: string
-    datasetId?: int
+    datasetId?: string
     datasetName?: string
     source?: OwidSource
     display?: OwidVariableDisplaySettings
@@ -268,6 +268,35 @@ export class OwidTable extends AbstractTable<OwidRow> {
         return columnSlug + "-annotations"
     }
 
+    static columnSpecFromVariable(variable: OwidVariable): ColumnSpec {
+        const slug = variable.id + "-" + slugify(variable.name) // todo: remove?
+        const {
+            unit,
+            shortUnit,
+            description,
+            coverage,
+            datasetId,
+            datasetName,
+            source,
+            display
+        } = variable
+
+        return {
+            name: variable.name,
+            slug,
+            isDailyMeasurement: variable.display.yearIsDay,
+            unit,
+            shortUnit,
+            description,
+            coverage,
+            datasetId,
+            datasetName,
+            display,
+            source,
+            owidVariableId: variable.id
+        }
+    }
+
     static fromLegacy(json: OwidVariablesAndEntityKey) {
         let rows: OwidRow[] = []
         const entityMetaById: { [id: string]: EntityMeta } = json.entityKey
@@ -286,42 +315,20 @@ export class OwidTable extends AbstractTable<OwidRow> {
             const variable = new OwidVariable(
                 json.variables[key]
             ).setEntityNamesAndCodesFromEntityMap(entityMetaById)
-            const columnName = variable.id + "-" + slugify(variable.name) // todo: remove?
-            const isDailyMeasurement = variable.display.yearIsDay
-            const timeColumnName = isDailyMeasurement ? "day" : "year"
-            isDailyMeasurement
+
+            const columnSpec = this.columnSpecFromVariable(variable)
+            const columnSlug = columnSpec.slug
+            columnSpecs.set(columnSlug, columnSpec)
+
+            columnSpec.isDailyMeasurement
                 ? columnSpecs.set("day", { name: "day", slug: "day" })
                 : columnSpecs.set("year", { name: "year", slug: "year" })
-            const {
-                unit,
-                shortUnit,
-                description,
-                coverage,
-                datasetId,
-                datasetName,
-                source,
-                display
-            } = variable
 
-            columnSpecs.set(columnName, {
-                name: variable.name,
-                slug: columnName,
-                isDailyMeasurement,
-                unit,
-                shortUnit,
-                description,
-                coverage,
-                datasetId,
-                datasetName,
-                display,
-                source,
-                owidVariableId: variable.id
-            })
-
+            // todo: remove. move annotations to their own first class column.
             let annotationColumnName: string
             let annotationMap: Map<string, string>
             if (variable.display.entityAnnotationsMap) {
-                annotationColumnName = this.makeAnnotationColumnSlug(columnName)
+                annotationColumnName = this.makeAnnotationColumnSlug(columnSlug)
                 annotationMap = this.annotationsToMap(
                     variable.display.entityAnnotationsMap
                 )
@@ -331,11 +338,14 @@ export class OwidTable extends AbstractTable<OwidRow> {
                 })
             }
 
+            const timeColumnName = columnSpec.isDailyMeasurement
+                ? "day"
+                : "year"
             const newRows = variable.values.map((value, index) => {
                 const entityName = variable.entityNames[index]
                 const row: any = {
                     [timeColumnName]: variable.years[index],
-                    [columnName]: value,
+                    [columnSlug]: value,
                     entityName,
                     entityId: variable.entities[index],
                     entityCode: variable.entityCodes[index]
