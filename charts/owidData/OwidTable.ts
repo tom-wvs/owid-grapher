@@ -132,7 +132,7 @@ export class OwidTable extends AbstractTable<OwidRow> {
                     [columnName]: value,
                     entityName: variable.entityNames[index],
                     entityId: variable.entities[index],
-                    entityCode: variable.entities
+                    entityCode: variable.entityCodes[index]
                 }
             })
             rows = rows.concat(newRows)
