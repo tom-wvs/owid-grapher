@@ -154,7 +154,7 @@ export class OwidTable extends AbstractTable<OwidRow> {
         const map = new Map<number, AbstractColumn>()
         this.columnNames.forEach(slug => {
             const id = parseInt(slug.split("-")[0])
-            map.set(id, new StringColumn(this, { slug, name: slug }))
+            map.set(id, new StringColumn(this, this.spec.get(slug)!))
         })
         return map
     }
