@@ -343,9 +343,14 @@ export class OwidTable extends AbstractTable<OwidRow> {
         })
 
         for (const key in json.variables) {
-            const variable = new OwidVariable(
-                json.variables[key]
-            ).setEntityNamesAndCodesFromEntityMap(entityMetaById)
+            const variable = new OwidVariable(json.variables[key])
+
+            const entityNames = variable.entities.map(
+                id => entityMetaById[id].name
+            )
+            const entityCodes = variable.entities.map(
+                id => entityMetaById[id].code
+            )
 
             const columnSpec = this.columnSpecFromVariable(variable)
             const columnSlug = columnSpec.slug
@@ -373,14 +378,14 @@ export class OwidTable extends AbstractTable<OwidRow> {
                 ? "day"
                 : "year"
             const newRows = variable.values.map((value, index) => {
-                const entityName = variable.entityNames[index]
+                const entityName = entityNames[index]
                 const row: any = {
                     _guid: guid(),
                     [timeColumnName]: variable.years[index],
                     [columnSlug]: value,
                     entityName,
                     entityId: variable.entities[index],
-                    entityCode: variable.entityCodes[index]
+                    entityCode: entityCodes[index]
                 }
                 if (annotationColumnName)
                     row[annotationColumnName] = annotationMap.get(entityName)

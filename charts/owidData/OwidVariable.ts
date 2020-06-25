@@ -76,13 +76,4 @@ export class OwidVariable {
         }
         return this.rawYears
     }
-
-    // Todo: would be great if we could remove the need for this and just include entity names directly in the data
-    setEntityNamesAndCodesFromEntityMap(entityMap: {
-        [id: string]: EntityMeta
-    }) {
-        this.entityNames = this.entities.map(id => entityMap[id].name)
-        this.entityCodes = this.entities.map(id => entityMap[id].code)
-        return this
-    }
 }
