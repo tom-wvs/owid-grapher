@@ -328,7 +328,7 @@ export class ChartConfig {
         }
     }
 
-    @observable.ref table: OwidTable = new OwidTable([], new Map())
+    @observable.ref table: OwidTable = new OwidTable([])
 
     // Provide a way to insert an arbitrary element into the embed popup.
     // The "hideControls" property is a param on the explorer, so to maintain

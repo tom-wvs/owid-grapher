@@ -38,9 +38,7 @@ export class OwidVariable {
     @observable.ref entities: number[] = []
     @observable.ref values: (string | number)[] = []
 
-    private rawJson: any
     constructor(json: any) {
-        this.rawJson = json
         for (const key in this) {
             if (key === "rawYears") {
                 // If the dataset is using `yearIsDay`, we need to normalize days to a single epoch.

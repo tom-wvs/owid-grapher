@@ -1,6 +1,6 @@
 import { OwidVariablesAndEntityKey, EntityMeta } from "./OwidVariableSet"
 import { OwidVariable, OwidVariableDisplaySettings } from "./OwidVariable"
-import { slugify, groupBy, guid } from "charts/Util"
+import { slugify, groupBy } from "charts/Util"
 import { max, min } from "lodash"
 import { computed, action } from "mobx"
 import { OwidSource } from "./OwidSource"
@@ -22,7 +22,6 @@ interface OwidRow extends Row {
     year?: year
     day?: int
     date?: string
-    _guid: int
     _selected?: boolean
     _filtered?: boolean
     _color?: color
@@ -155,9 +154,19 @@ declare type TableSpec = Map<columnSlug, ColumnSpec>
 abstract class AbstractTable<ROW_TYPE> {
     rows: ROW_TYPE[]
     spec: TableSpec
-    constructor(rows: ROW_TYPE[], specs: TableSpec) {
+    constructor(rows: ROW_TYPE[], specs?: TableSpec) {
         this.rows = rows
-        this.spec = specs
+        this.spec = specs ?? AbstractTable.makeSpecsFromRows(rows)
+    }
+
+    static makeSpecsFromRows(rows: any[]): TableSpec {
+        const map = new Map()
+        rows.forEach(row => {
+            Object.keys(row).forEach(key => {
+                map.set(key, { name: key, slug: key })
+            })
+        })
+        return map
     }
 
     @computed get columnNames() {
@@ -168,9 +177,12 @@ abstract class AbstractTable<ROW_TYPE> {
 export class OwidTable extends AbstractTable<OwidRow> {
     @computed get columnsByVarId() {
         const map = new Map<number, AbstractColumn>()
-        Array.from(this.spec.keys()).forEach(slug => {
+        Array.from(this.spec.keys()).forEach((slug, index) => {
             const spec = this.spec.get(slug)!
-            map.set(spec?.owidVariableId!, new StringColumn(this, spec))
+            map.set(
+                spec?.owidVariableId! ?? index,
+                new StringColumn(this, spec)
+            )
         })
         return map
     }
@@ -376,7 +388,6 @@ export class OwidTable extends AbstractTable<OwidRow> {
             const newRows = variable.values.map((value, index) => {
                 const entityName = entityNames[index]
                 const row: any = {
-                    _guid: guid(),
                     [timeColumnName]: variable.years[index],
                     [columnSlug]: value,
                     entityName,
