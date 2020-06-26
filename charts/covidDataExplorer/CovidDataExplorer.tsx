@@ -617,14 +617,6 @@ export class CovidDataExplorer extends React.Component<{
         return this.availableCountriesCache.get(key)!
     }
 
-    @computed get countryCodeToNameMap() {
-        const map = new Map<string, string>()
-        this.countryOptions.forEach((country, index) => {
-            map.set(country.code, country.name)
-        })
-        return map
-    }
-
     private _countryCodeToColorMapCache: {
         [key: string]: string | undefined
     } = {}
@@ -659,12 +651,6 @@ export class CovidDataExplorer extends React.Component<{
         }
 
         return this._countryCodeToColorMapCache
-    }
-
-    @computed get firstSelectedCountryName() {
-        return this.countryCodeToNameMap.get(
-            Array.from(this.props.params.selectedCountryCodes)[0]
-        )
     }
 
     @computed get entityKey(): OwidEntityKey {

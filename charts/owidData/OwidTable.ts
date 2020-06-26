@@ -233,6 +233,7 @@ export class OwidTable extends AbstractTable<OwidRow> {
         console.log(this.toDelimited(",", 10))
     }
 
+    // todo: have a debug param and spit out filtered, etc?
     toDelimited(delimiter = ",", rowLimit?: number) {
         const cols = Array.from(this.columnNames)
         const header = cols.join(delimiter) + "\n"
