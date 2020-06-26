@@ -193,6 +193,7 @@ export class ChartConfigProps {
     @observable.ref externalDataUrl?: string = undefined
     @observable.ref owidDataset?: OwidVariablesAndEntityKey = undefined
     @observable.ref entitiesAreCountries?: boolean = undefined
+    v2?: boolean = false
 
     @observable.ref selectedData: EntitySelection[] = []
     @observable.ref minTime?: TimeBound = undefined
@@ -301,6 +302,8 @@ export class ChartConfig {
     @observable.ref useTimelineDomains = false
 
     @action.bound async downloadData() {
+        if (this.props.v2) return
+
         if (this.props.externalDataUrl) {
             const json = await fetchJSON(this.props.externalDataUrl)
             this.receiveData(json)

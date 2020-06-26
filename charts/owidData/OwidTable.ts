@@ -45,6 +45,8 @@ export interface ColumnSpec {
     display?: OwidVariableDisplaySettings
 }
 
+export declare type RowBuilder = (row: Row) => any
+
 export abstract class AbstractColumn {
     private spec: ColumnSpec
     table: OwidTable
@@ -150,7 +152,12 @@ abstract class AbstractTable<ROW_TYPE> {
     @observable spec: TableSpec
     constructor(rows: ROW_TYPE[], specs?: TableSpec) {
         this.rows = rows
-        this.spec = specs ?? AbstractTable.makeSpecsFromRows(rows)
+        this.spec = specs ? specs : this.detectSpec()
+    }
+
+    detectSpec() {
+        this.spec = AbstractTable.makeSpecsFromRows(this.rows)
+        return this.spec
     }
 
     static makeSpecsFromRows(rows: any[]): TableSpec {
@@ -227,12 +234,18 @@ export class OwidTable extends AbstractTable<OwidRow> {
         console.log(this.toDelimited(",", 10))
     }
 
-    addColumn(spec: ColumnSpec, rowFn: (row: Row) => any) {
+    addColumn(spec: ColumnSpec, rowFn: RowBuilder) {
         const slug = spec.slug
         this.spec.set(spec.slug, spec)
         this.rows.forEach(row => {
             row[slug] = rowFn(row)
         })
+        return this
+    }
+
+    addRows(rows: OwidRow[]) {
+        this.rows = this.rows.concat(rows)
+        return this
     }
 
     // todo: have a debug param and spit out filtered, etc?

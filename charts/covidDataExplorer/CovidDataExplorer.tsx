@@ -1,7 +1,3 @@
-import {
-    OwidVariablesAndEntityKey,
-    OwidEntityKey
-} from "../owidData/OwidVariableSet"
 import React from "react"
 import classnames from "classnames"
 import ReactDOM from "react-dom"
@@ -36,25 +32,23 @@ import {
     TotalFrequencyOption,
     DailyFrequencyOption,
     MetricKind,
-    ParsedCovidRow,
-    CountryOption
+    CountryOption,
+    CovidGrapherRow
 } from "./CovidTypes"
 import { ControlOption, ExplorerControl } from "./CovidExplorerControl"
 import { CountryPicker } from "./CovidCountryPicker"
 import { CovidQueryParams, CovidUrl } from "./CovidChartUrl"
 import {
     fetchAndParseData,
-    RowAccessor,
-    buildCovidVariable,
     daysSinceVariable,
-    continentsVariable,
     buildCovidVariableId,
     makeCountryOptions,
     covidDataPath,
     covidLastUpdatedPath,
     getTrajectoryOptions,
     getLeastUsedColor,
-    computeCovidColumn
+    computeCovidColumn,
+    buildColumnSpec
 } from "./CovidDataUtils"
 import { BAKED_BASE_URL } from "settings"
 import moment from "moment"
@@ -65,12 +59,14 @@ import {
 } from "./CovidConstants"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { ColorScheme, ColorSchemes } from "charts/ColorSchemes"
+import { variablePartials } from "./CovidVariablePartials"
+import { RowBuilder } from "charts/owidData/OwidTable"
 
 const abSeed = Math.random()
 
 @observer
 export class CovidDataExplorer extends React.Component<{
-    data: ParsedCovidRow[]
+    data: CovidGrapherRow[]
     params: CovidQueryParams
     updated: string
 }> {
@@ -555,7 +551,7 @@ export class CovidDataExplorer extends React.Component<{
         const smoothing = this.constrainedParams.smoothing
             ? `Shown is the rolling ${this.constrainedParams.smoothing}-day average. `
             : ""
-        return `${smoothing}` + this.yVariable.description
+        return `${smoothing}` + this.yColumn.description
     }
 
     @computed get note() {
@@ -597,20 +593,20 @@ export class CovidDataExplorer extends React.Component<{
     @computed get availableCountriesForMetric() {
         let key: string
         if (this.xVariableId) {
-            key = this.xVariableId + "-" + this.yVariableId
+            key = this.xVariableId + "-" + this.currentYVarId
             if (!this.availableCountriesCache.get(key)) {
                 const data = intersection(
-                    this.xVariable.entityNames,
-                    this.yVariable.entityNames
+                    this.xColumn.entityNames,
+                    this.yColumn.entityNames
                 )
                 this.availableCountriesCache.set(key, new Set(data))
             }
         } else {
-            key = this.yVariableId + ""
+            key = this.currentYVarId + ""
             if (!this.availableCountriesCache.get(key)) {
                 this.availableCountriesCache.set(
                     key,
-                    new Set(this.yVariable.entityNames)
+                    new Set(this.yColumn ? this.yColumn.entityNames : [])
                 )
             }
         }
@@ -653,27 +649,14 @@ export class CovidDataExplorer extends React.Component<{
         return this._countryCodeToColorMapCache
     }
 
-    @computed get entityKey(): OwidEntityKey {
-        const key: OwidEntityKey = {}
-        this.countryOptions.forEach((country, index) => {
-            key[index] = {
-                name: country.name,
-                code: country.code,
-                id: index
-            }
-        })
-
-        return key
-    }
-
     // If someone selects "Align with..." we switch to a scatterplot chart type.
     @computed get chartType(): ChartTypeType {
         return this.constrainedParams.aligned ? "ScatterPlot" : "LineChart"
     }
 
-    private initVariableAndGetId(
+    private initColumnAndGetId(
         columnName: MetricKind,
-        rowFn: RowAccessor,
+        rowFn: RowBuilder,
         daily: boolean = false,
         perCapita = this.constrainedParams.perCapita ? this.perCapitaDivisor : 1
     ) {
@@ -688,32 +671,65 @@ export class CovidDataExplorer extends React.Component<{
                 columnName === "positive_test_rate") &&
             smoothing === 7
 
-        if (!this.owidVariableSet.variables[id]) {
-            this.owidVariableSet.variables[id] = buildCovidVariable(
+        const table = this.chart.table
+
+        if (!table.columnsByVarId.has(id)) {
+            const spec = buildColumnSpec(
                 id,
                 columnName,
-                this.countryMap,
-                this.props.data,
-                rowFn,
                 perCapita,
-                alreadySmoothed ? 1 : smoothing,
                 daily,
+                smoothing,
                 columnName === "tests" ? "" : " - " + this.lastUpdated
             )
+            table.addColumn(spec, rowFn)
         }
+
+        // buildCovidVariable(
+        //     id,
+        //     columnName,
+        //     this.countryMap,
+        //     this.props.data,
+        //     rowFn,
+        //     perCapita,
+        //     alreadySmoothed ? 1 : smoothing,
+        //     daily,
+        //     columnName === "tests" ? "" : " - " + this.lastUpdated
+        // )
+
         return id
+    }
+
+    @computed get currentYVarId() {
+        const params = this.constrainedParams
+        return buildCovidVariableId(
+            this.metricName,
+            params.perCapita ? this.perCapitaDivisor : 1,
+            params.smoothing,
+            params.dailyFreq
+        )
+    }
+
+    get metricName(): MetricKind {
+        const params = this.constrainedParams
+        if (params.testsMetric) return "tests"
+        if (params.casesMetric) return "cases"
+        if (params.deathsMetric) return "deaths"
+        if (params.cfrMetric) return "case_fatality_rate"
+        if (params.testsPerCaseMetric) return "tests_per_case"
+        return "positive_test_rate"
     }
 
     // We are computing variables clientside so they don't have a variable index. The variable index is used by Chart
     // in a number of places, so we still need a unique one per variable. The way our system works, changing things like
     // frequency or per capita would be in effect creating a new variable. So we need to generate unique variable ids
     // for all of these combinations.
-    @computed get yVariableId() {
+    initColumns() {
         const params = this.constrainedParams
 
         if (params.testsMetric && params.dailyFreq)
-            return this.initVariableAndGetId(
-                "tests",
+            this.initColumnAndGetId(
+                this.metricName,
                 row => {
                     return params.smoothing === 7
                         ? row.new_tests_smoothed
@@ -722,29 +738,25 @@ export class CovidDataExplorer extends React.Component<{
                 true
             )
         if (params.testsMetric && params.totalFreq)
-            return this.initVariableAndGetId("tests", row => row.total_tests)
+            this.initColumnAndGetId(this.metricName, row => row.total_tests)
 
         if (params.casesMetric && params.dailyFreq)
-            return this.initVariableAndGetId(
-                "cases",
-                row => row.new_cases,
-                true
-            )
+            this.initColumnAndGetId(this.metricName, row => row.new_cases, true)
         if (params.casesMetric && params.totalFreq)
-            return this.initVariableAndGetId("cases", row => row.total_cases)
+            this.initColumnAndGetId(this.metricName, row => row.total_cases)
 
         if (params.deathsMetric && params.dailyFreq)
-            return this.initVariableAndGetId(
-                "deaths",
+            this.initColumnAndGetId(
+                this.metricName,
                 row => row.new_deaths,
                 true
             )
         if (params.deathsMetric && params.totalFreq)
-            return this.initVariableAndGetId("deaths", row => row.total_deaths)
+            this.initColumnAndGetId(this.metricName, row => row.total_deaths)
 
         if (params.cfrMetric && params.dailyFreq)
-            return this.initVariableAndGetId(
-                "case_fatality_rate",
+            this.initColumnAndGetId(
+                this.metricName,
                 row =>
                     row.total_cases < 100
                         ? undefined
@@ -754,7 +766,7 @@ export class CovidDataExplorer extends React.Component<{
                 true
             )
         if (params.cfrMetric && params.totalFreq)
-            return this.initVariableAndGetId("case_fatality_rate", row =>
+            this.initColumnAndGetId(this.metricName, row =>
                 row.total_cases < 100
                     ? undefined
                     : row.total_deaths && row.total_cases
@@ -765,8 +777,8 @@ export class CovidDataExplorer extends React.Component<{
         if (params.testsPerCaseMetric && params.dailyFreq) {
             if (params.smoothing) {
                 this.addNewCasesSmoothed()
-                return this.initVariableAndGetId(
-                    "tests_per_case",
+                this.initColumnAndGetId(
+                    this.metricName,
                     row => {
                         if (
                             row.new_tests_smoothed === undefined ||
@@ -781,8 +793,8 @@ export class CovidDataExplorer extends React.Component<{
                     true
                 )
             } else {
-                return this.initVariableAndGetId(
-                    "tests_per_case",
+                this.initColumnAndGetId(
+                    this.metricName,
                     row => {
                         if (row.new_tests === undefined || row.new_cases)
                             return undefined
@@ -794,7 +806,7 @@ export class CovidDataExplorer extends React.Component<{
             }
         }
         if (params.testsPerCaseMetric && params.totalFreq)
-            return this.initVariableAndGetId("tests_per_case", row => {
+            this.initColumnAndGetId(this.metricName, row => {
                 if (row.total_tests === undefined || !row.total_cases)
                     return undefined
                 const tpc = row.total_tests / row.total_cases
@@ -803,8 +815,8 @@ export class CovidDataExplorer extends React.Component<{
 
         if (params.positiveTestRate && params.dailyFreq) {
             this.addNewCasesSmoothed()
-            return this.initVariableAndGetId(
-                "positive_test_rate",
+            this.initColumnAndGetId(
+                this.metricName,
                 row => {
                     const testCount =
                         params.smoothing === 7
@@ -825,15 +837,12 @@ export class CovidDataExplorer extends React.Component<{
             )
         }
         if (params.positiveTestRate && params.totalFreq)
-            return this.initVariableAndGetId("positive_test_rate", row => {
+            this.initColumnAndGetId(this.metricName, row => {
                 if (row.total_cases === undefined || !row.total_tests)
                     return undefined
                 const rate = row.total_cases / row.total_tests
                 return rate >= 0 && rate <= 1 ? rate : undefined
             })
-
-        console.log(`Error: no variable id generated.`)
-        return 0
     }
 
     private _smoothedAdded = false
@@ -858,18 +867,18 @@ export class CovidDataExplorer extends React.Component<{
 
     @computed get daysSinceVariableId() {
         const params = this.constrainedParams
-        let sourceId = this.yVariableId
+        let sourceId = this.currentYVarId
         // If we are using the cases metric, we use that for days since, else we use a formula
         // that uses the deaths metric.
         if (!params.casesMetric) {
             sourceId = params.dailyFreq
-                ? this.initVariableAndGetId(
+                ? this.initColumnAndGetId(
                       "deaths",
                       row => row.new_deaths,
                       true,
                       params.perCapita ? 1000000 : 1
                   )
-                : this.initVariableAndGetId(
+                : this.initColumnAndGetId(
                       "deaths",
                       row => row.total_deaths,
                       false,
@@ -895,13 +904,6 @@ export class CovidDataExplorer extends React.Component<{
         return getTrajectoryOptions(kind, params.dailyFreq, params.perCapita)
     }
 
-    @observable.struct owidVariableSet: OwidVariablesAndEntityKey = {
-        variables: {
-            123: continentsVariable(this.countryOptions)
-        },
-        entityKey: this.entityKey
-    }
-
     private continentsVariableId = 123
 
     updateChart() {
@@ -913,11 +915,12 @@ export class CovidDataExplorer extends React.Component<{
         }, 1)
     }
 
-    @action.bound private async _updateChart() {
+    @action.bound private _updateChart() {
         // We can't create a new chart object with every radio change because the Chart component itself
         // maintains state (for example, which tab is currently active). Temporary workaround is just to
         // manually update the chart when the chart builderselections change.
         // todo: cleanup
+        this.initColumns()
         const chartProps = this.chart.props
         chartProps.title = this.chartTitle
         chartProps.subtitle = this.subtitle
@@ -934,9 +937,16 @@ export class CovidDataExplorer extends React.Component<{
         chartProps.dimensions = this.dimensions
         // Todo: perf improvements
         // We manually call this first, before doing the selection thing, because we cannot select data that is not there.
-        await this.chart.downloadData()
+        if (!this.chart.table.rows.length) {
+            const spec = new Map()
+            spec.set("continent", variablePartials.continents)
+            spec.set("cases_total", variablePartials.continents)
+            this.chart.table.addRows(this.props.data)
+            this.chart.table.detectSpec()
+            // casesMetric=true&totalFreq=true&s&country=~ISR
+        }
 
-        chartProps.map.variableId = this.yVariableId
+        chartProps.map.variableId = this.currentYVarId
         chartProps.map.colorScale.baseColorScheme = this.mapColorScheme
 
         if (this.constrainedParams.testsPerCaseMetric)
@@ -996,7 +1006,7 @@ export class CovidDataExplorer extends React.Component<{
         this.chart.url.externalBaseUrl = `${BAKED_BASE_URL}/${covidDashboardSlug}`
         this._updateChart()
 
-        this.observeChartEntitySelection()
+        // this.observeChartEntitySelection()
 
         const win = window as any
         win.covidDataExplorer = this
@@ -1043,7 +1053,7 @@ export class CovidDataExplorer extends React.Component<{
                         this.toggleSelectedCountry(code, false)
                     )
                     // Trigger an update in order to apply color changes
-                    this.updateChart()
+                    this._updateChart()
                 }
             })
         )
@@ -1068,12 +1078,12 @@ export class CovidDataExplorer extends React.Component<{
         this.disposers.forEach(dispose => dispose())
     }
 
-    @computed get yVariable() {
-        return this.owidVariableSet.variables[this.yVariableId]
+    @computed get yColumn() {
+        return this.chart.table.columnsByVarId.get(this.currentYVarId)!
     }
 
-    @computed get xVariable() {
-        return this.owidVariableSet.variables[this.xVariableId!]
+    @computed get xColumn() {
+        return this.chart.table.columnsByVarId.get(this.xVariableId!)!
     }
 
     @computed get dimensions(): ChartDimension[] {
@@ -1081,7 +1091,7 @@ export class CovidDataExplorer extends React.Component<{
             return [
                 {
                     property: "y",
-                    variableId: this.yVariableId,
+                    variableId: this.currentYVarId,
                     display: {
                         // Allow ± 1 day difference in data plotted on bar charts
                         // This is what we use for charts on the Grapher too
@@ -1094,7 +1104,7 @@ export class CovidDataExplorer extends React.Component<{
         return [
             {
                 property: "y",
-                variableId: this.yVariableId,
+                variableId: this.currentYVarId,
                 display: {
                     name: this.chartTitle
                 }
@@ -1135,15 +1145,15 @@ export class CovidDataExplorer extends React.Component<{
         }
     }
 
-    @observable.ref chart = new ChartConfig(
+    @observable.ref chart: ChartConfig = new ChartConfig(
         {
             slug: covidDashboardSlug,
             type: this.chartType,
             isExplorable: false,
             id: 4128,
             version: 9,
-            title: this.chartTitle,
-            subtitle: this.subtitle,
+            title: "",
+            subtitle: "",
             note: this.note,
             hideTitleAnnotation: true,
             xAxis: {
@@ -1155,13 +1165,13 @@ export class CovidDataExplorer extends React.Component<{
                 canChangeScaleType: true,
                 label: ""
             },
-            owidDataset: this.owidVariableSet,
             selectedData: [],
             entitiesAreCountries: true,
-            dimensions: this.dimensions,
+            dimensions: [],
             scatterPointLabelStrategy: "y",
             addCountryMode: "add-country",
             stackMode: "absolute",
+            v2: true,
             colorScale: {
                 baseColorScheme: undefined,
                 colorSchemeValues: [],
@@ -1177,7 +1187,7 @@ export class CovidDataExplorer extends React.Component<{
             tab: "chart",
             isPublished: true,
             map: {
-                variableId: this.yVariableId,
+                variableId: 123,
                 timeTolerance: 7,
                 projection: "World",
                 colorScale: {

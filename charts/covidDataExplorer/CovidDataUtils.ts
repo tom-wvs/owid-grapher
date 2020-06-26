@@ -14,7 +14,12 @@ import {
     sortBy
 } from "charts/Util"
 import moment from "moment"
-import { ParsedCovidRow, MetricKind, CountryOption } from "./CovidTypes"
+import {
+    ParsedCovidCsvRow,
+    MetricKind,
+    CountryOption,
+    CovidGrapherRow
+} from "./CovidTypes"
 import { OwidVariable } from "charts/owidData/OwidVariable"
 import { variablePartials } from "./CovidVariablePartials"
 import { csv } from "d3-fetch"
@@ -24,15 +29,22 @@ const keepStrings = new Set(
     `iso_code location date tests_units continent`.split(" ")
 )
 
-export const parseCovidRow = (row: any) => {
+const ents = new Set()
+export const parseCovidRow = (row: ParsedCovidCsvRow) => {
+    const newRow: Partial<CovidGrapherRow> = row
     Object.keys(row).forEach(key => {
         const isNumeric = !keepStrings.has(key)
-        if (isNumeric) row[key] = parseFloatOrUndefined(row[key])
+        if (isNumeric)
+            (row as any)[key] = parseFloatOrUndefined((row as any)[key])
         if (key === "iso_code" && !row.iso_code) {
             if (row.location === "World") row.iso_code = "OWID_WRL"
             else if (row.location === "International") row.iso_code = "OWID_INT"
         }
     })
+    newRow.entityName = row.location
+    newRow.entityCode = row.iso_code
+    newRow.entityId = ents.size
+    ents.add(row.location)
     return row
 }
 
@@ -44,15 +56,15 @@ const dateToYear = (dateString: string): number =>
         moment.utc(EPOCH_DATE).toDate()
     )
 
-export declare type RowAccessor = (row: ParsedCovidRow) => number | undefined
+declare type RowAccessor = (row: ParsedCovidCsvRow) => number | undefined
 
-export const covidDataPath =
-    "https://covid.ourworldindata.org/data/owid-covid-data.csv"
+// export const covidDataPath = "https://covid.ourworldindata.org/data/owid-covid-data.csv"
+export const covidDataPath = "http://localhost:3099/sandbox/testData.csv"
 
 export const covidLastUpdatedPath =
     "https://covid.ourworldindata.org/data/owid-covid-data-last-updated-timestamp.txt"
 
-export const fetchAndParseData = async (): Promise<ParsedCovidRow[]> => {
+export const fetchAndParseData = async (): Promise<CovidGrapherRow[]> => {
     const rawData = await csv(covidDataPath)
     const filtered = rawData
         .map(parseCovidRow)
@@ -65,7 +77,7 @@ export const fetchAndParseData = async (): Promise<ParsedCovidRow[]> => {
     return filtered.concat(continentRows, euRows)
 }
 
-const getEuRows = (rows: ParsedCovidRow[]) =>
+const getEuRows = (rows: ParsedCovidCsvRow[]) =>
     rows.filter(row => euCountries.has(row.location))
 
 const euCountries = new Set([
@@ -99,10 +111,10 @@ const euCountries = new Set([
 ])
 
 export const calculateRowsForGroup = (
-    group: ParsedCovidRow[],
+    group: ParsedCovidCsvRow[],
     groupName: string
 ) => {
-    const groupRows = new Map<string, ParsedCovidRow>()
+    const groupRows = new Map<string, ParsedCovidCsvRow>()
     const rows = sortBy(group, row => moment(row.date).unix())
     rows.forEach(row => {
         const day = row.date
@@ -116,7 +128,7 @@ export const calculateRowsForGroup = (
                 new_cases: 0,
                 new_deaths: 0,
                 population: 0
-            } as ParsedCovidRow)
+            } as ParsedCovidCsvRow)
         }
         const newRow = groupRows.get(day)!
         newRow.population += row.population
@@ -143,7 +155,7 @@ export const calculateRowsForGroup = (
 }
 
 // Generates rows for each region.
-export const generateContinentRows = (rows: ParsedCovidRow[]) => {
+export const generateContinentRows = (rows: ParsedCovidCsvRow[]) => {
     const grouped = groupBy(rows, "continent")
     return flatten(
         Object.keys(grouped)
@@ -154,7 +166,9 @@ export const generateContinentRows = (rows: ParsedCovidRow[]) => {
     )
 }
 
-export const makeCountryOptions = (data: ParsedCovidRow[]): CountryOption[] => {
+export const makeCountryOptions = (
+    data: ParsedCovidCsvRow[]
+): CountryOption[] => {
     const rowsByCountry = groupBy(data, "iso_code")
     return map(rowsByCountry, rows => {
         const { location, iso_code, population, continent } = rows[0]
@@ -167,17 +181,6 @@ export const makeCountryOptions = (data: ParsedCovidRow[]): CountryOption[] => {
             rows
         }
     })
-}
-
-export const continentsVariable = (countryOptions: CountryOption[]) => {
-    const variable: Partial<OwidVariable> = {
-        ...variablePartials.continents,
-        years: countryOptions.map(country => 2020),
-        entities: countryOptions.map((country, index) => index),
-        values: countryOptions.map(country => country.continent)
-    }
-
-    return variable as OwidVariable
 }
 
 export const daysSinceVariable = (
@@ -289,7 +292,7 @@ const computeRollingAveragesForEachCountry = (
 }
 
 function buildEntityAnnotations(
-    data: ParsedCovidRow[],
+    data: ParsedCovidCsvRow[],
     metric: MetricKind
 ): string | undefined {
     if (
@@ -322,7 +325,7 @@ India: Note that on June 17 earlier deaths were added to the total.`
 }
 
 export const computeCovidColumn = (
-    rows: ParsedCovidRow[],
+    rows: ParsedCovidCsvRow[],
     rowFn: RowAccessor,
     perCapita: number,
     rollingAverage?: number
@@ -383,16 +386,15 @@ export const buildCovidVariable = (
     newId: number,
     name: MetricKind,
     countryMap: Map<string, number>,
-    rows: ParsedCovidRow[],
+    rows: ParsedCovidCsvRow[],
     rowFn: RowAccessor,
     perCapita: number,
     rollingAverage?: number,
     daily?: boolean,
     updatedTime?: string
 ): OwidVariable => {
-    const partial = buildVariableMetadata(
+    const partial = buildColumnSpec(
         newId,
-        rows,
         name,
         perCapita,
         daily,
@@ -415,20 +417,18 @@ export const buildCovidVariable = (
     return variable as OwidVariable
 }
 
-const buildVariableMetadata = (
+export const buildColumnSpec = (
     newId: number,
-    rows: ParsedCovidRow[],
     name: MetricKind,
     perCapita: number,
     daily?: boolean,
     rollingAverage?: number,
     updatedTime?: string
-) => {
-    const variable = cloneDeep(variablePartials[name])
-
-    variable.source!.name = `${variable.source!.name}${updatedTime}`
-
-    variable.id = newId
+): ColumnSpec => {
+    const spec = cloneDeep(variablePartials[name]) as ColumnSpec
+    spec.slug = `${newId}-covid-${name}`
+    spec.owidVariableId = newId
+    spec.source!.name = `${spec.source!.name}${updatedTime}`
 
     const messages: { [index: number]: string } = {
         1: "",
@@ -436,26 +436,26 @@ const buildVariableMetadata = (
         1000000: " per million people"
     }
 
-    variable.display!.name = `${daily ? "Daily " : "Cumulative "}${
-        variable.display!.name
+    spec.display!.name = `${daily ? "Daily " : "Cumulative "}${
+        spec.display!.name
     }${messages[perCapita]}`
 
     // Show decimal places for rolling average & per capita variables
     if (perCapita > 1) {
-        variable.display!.numDecimalPlaces = 2
+        spec.display!.numDecimalPlaces = 2
     } else if (
         name === "positive_test_rate" ||
         name === "case_fatality_rate" ||
         (rollingAverage && rollingAverage > 1)
     ) {
-        variable.display!.numDecimalPlaces = 1
+        spec.display!.numDecimalPlaces = 1
     } else {
-        variable.display!.numDecimalPlaces = 0
+        spec.display!.numDecimalPlaces = 0
     }
 
-    variable.display!.entityAnnotationsMap = buildEntityAnnotations(rows, name)
+    // variable.display!.entityAnnotationsMap = buildEntityAnnotations(rows, name)
 
-    return variable
+    return spec
 }
 
 export const getTrajectoryOptions = (
