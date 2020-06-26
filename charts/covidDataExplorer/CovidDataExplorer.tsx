@@ -673,7 +673,7 @@ export class CovidDataExplorer extends React.Component<{
 
         const table = this.chart.table
 
-        if (!table.columnsByVarId.has(id)) {
+        if (!table.columnsByOwidVarId.has(id)) {
             const spec = buildColumnSpec(
                 id,
                 columnName,
@@ -915,11 +915,24 @@ export class CovidDataExplorer extends React.Component<{
         }, 1)
     }
 
+    private initTable() {
+        if (this.chart.table.rows.length) return
+        // We manually call this first, before doing the selection thing, because we cannot select data that is not there.
+
+        const spec = new Map()
+        spec.set("continent", variablePartials.continents)
+        spec.set("cases_total", variablePartials.continents)
+        this.chart.table.addRows(this.props.data)
+        this.chart.table.detectSpec()
+        // casesMetric=true&totalFreq=true&s&country=~ISR
+    }
+
     @action.bound private _updateChart() {
         // We can't create a new chart object with every radio change because the Chart component itself
         // maintains state (for example, which tab is currently active). Temporary workaround is just to
         // manually update the chart when the chart builderselections change.
         // todo: cleanup
+        this.initTable()
         this.initColumns()
         const chartProps = this.chart.props
         chartProps.title = this.chartTitle
@@ -936,15 +949,6 @@ export class CovidDataExplorer extends React.Component<{
         // When dimensions changes, chart.variableIds change, which calls downloadData(), which reparses variableSet
         chartProps.dimensions = this.dimensions
         // Todo: perf improvements
-        // We manually call this first, before doing the selection thing, because we cannot select data that is not there.
-        if (!this.chart.table.rows.length) {
-            const spec = new Map()
-            spec.set("continent", variablePartials.continents)
-            spec.set("cases_total", variablePartials.continents)
-            this.chart.table.addRows(this.props.data)
-            this.chart.table.detectSpec()
-            // casesMetric=true&totalFreq=true&s&country=~ISR
-        }
 
         chartProps.map.variableId = this.currentYVarId
         chartProps.map.colorScale.baseColorScheme = this.mapColorScheme
@@ -999,6 +1003,9 @@ export class CovidDataExplorer extends React.Component<{
     }
 
     componentDidMount() {
+        const win = window as any
+        win.covidDataExplorer = this
+
         this.bindToWindow()
 
         this.chart.hideEntityControls = true
@@ -1007,9 +1014,6 @@ export class CovidDataExplorer extends React.Component<{
         this._updateChart()
 
         // this.observeChartEntitySelection()
-
-        const win = window as any
-        win.covidDataExplorer = this
 
         this.onResizeThrottled = throttle(this.onResize, 100)
         window.addEventListener("resize", this.onResizeThrottled)
@@ -1079,11 +1083,11 @@ export class CovidDataExplorer extends React.Component<{
     }
 
     @computed get yColumn() {
-        return this.chart.table.columnsByVarId.get(this.currentYVarId)!
+        return this.chart.table.columnsByOwidVarId.get(this.currentYVarId)!
     }
 
     @computed get xColumn() {
-        return this.chart.table.columnsByVarId.get(this.xVariableId!)!
+        return this.chart.table.columnsByOwidVarId.get(this.xVariableId!)!
     }
 
     @computed get dimensions(): ChartDimension[] {

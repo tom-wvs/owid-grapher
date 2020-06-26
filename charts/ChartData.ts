@@ -52,7 +52,7 @@ export class ChartData {
     @computed get isReady(): boolean {
         const { chart } = this
         return chart.dimensions.every(dim =>
-            chart.table.columnsByVarId.has(dim.variableId)
+            chart.table.columnsByOwidVarId.has(dim.variableId)
         )
     }
 
@@ -63,7 +63,7 @@ export class ChartData {
             return new ChartDimensionWithOwidVariable(
                 i,
                 dim,
-                this.chart.table.columnsByVarId.get(dim.variableId)!
+                this.chart.table.columnsByOwidVarId.get(dim.variableId)!
             )
         })
     }

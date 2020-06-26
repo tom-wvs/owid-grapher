@@ -48,10 +48,10 @@ export interface ColumnSpec {
 export declare type RowBuilder = (row: Row) => any
 
 export abstract class AbstractColumn {
-    private spec: ColumnSpec
-    table: OwidTable
+    spec: ColumnSpec
+    table: AbstractTable<Row>
 
-    constructor(table: OwidTable, spec: ColumnSpec) {
+    constructor(table: AbstractTable<Row>, spec: ColumnSpec) {
         this.table = table
         this.spec = spec
     }
@@ -150,9 +150,36 @@ declare type TableSpec = Map<columnSlug, ColumnSpec>
 abstract class AbstractTable<ROW_TYPE> {
     rows: ROW_TYPE[]
     @observable spec: TableSpec
+    @observable protected columns: Map<columnSlug, AbstractColumn> = new Map()
+
     constructor(rows: ROW_TYPE[], specs?: TableSpec) {
         this.rows = rows
         this.spec = specs ? specs : this.detectSpec()
+        Array.from(this.spec.keys()).forEach(slug => {
+            this.columns.set(slug, new StringColumn(this, this.spec.get(slug)!))
+        })
+    }
+
+    addColumn(spec: ColumnSpec, rowFn: RowBuilder) {
+        const slug = spec.slug
+        this.spec.set(slug, spec)
+        this.columns.set(slug, new StringColumn(this, spec))
+        this.rows.forEach(row => {
+            ;(row as any)[slug] = rowFn(row)
+        })
+        return this
+    }
+
+    @computed get columnsBySlug() {
+        return this.columns
+    }
+
+    @computed get columnsByName() {
+        const map = new Map<string, AbstractColumn>()
+        this.columns.forEach(col => {
+            map.set(col.name, col)
+        })
+        return map
     }
 
     detectSpec() {
@@ -176,14 +203,10 @@ abstract class AbstractTable<ROW_TYPE> {
 }
 
 export class OwidTable extends AbstractTable<OwidRow> {
-    @computed get columnsByVarId() {
+    @computed get columnsByOwidVarId() {
         const map = new Map<number, AbstractColumn>()
-        Array.from(this.spec.keys()).forEach((slug, index) => {
-            const spec = this.spec.get(slug)!
-            map.set(
-                spec?.owidVariableId! ?? index,
-                new StringColumn(this, spec)
-            )
+        Array.from(this.columns.values()).forEach((column, index) => {
+            map.set(column.spec.owidVariableId ?? index, column)
         })
         return map
     }
@@ -211,36 +234,9 @@ export class OwidTable extends AbstractTable<OwidRow> {
         return this
     }
 
-    @computed get columnsByName() {
-        const columns = this.columnsByVarId
-        const map = new Map<string, AbstractColumn>()
-        columns.forEach(col => {
-            map.set(col.name, col)
-        })
-        return map
-    }
-
-    @computed get columnsBySlug() {
-        const columns = this.columnsByVarId
-        const map = new Map<columnSlug, AbstractColumn>()
-        columns.forEach(col => {
-            map.set(col.slug, col)
-        })
-        return map
-    }
-
     printStats() {
         console.log(this.minYear, this.maxYear)
         console.log(this.toDelimited(",", 10))
-    }
-
-    addColumn(spec: ColumnSpec, rowFn: RowBuilder) {
-        const slug = spec.slug
-        this.spec.set(spec.slug, spec)
-        this.rows.forEach(row => {
-            row[slug] = rowFn(row)
-        })
-        return this
     }
 
     addRows(rows: OwidRow[]) {

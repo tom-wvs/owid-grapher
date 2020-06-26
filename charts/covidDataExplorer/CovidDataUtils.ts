@@ -44,6 +44,8 @@ export const parseCovidRow = (row: ParsedCovidCsvRow) => {
     newRow.entityName = row.location
     newRow.entityCode = row.iso_code
     newRow.entityId = ents.size
+    newRow.day = dateToYear(row.date)
+
     ents.add(row.location)
     return row
 }

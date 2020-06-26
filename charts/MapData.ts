@@ -46,7 +46,7 @@ export class MapData extends ChartTransform {
         autorun(() => {
             const hasVariable =
                 chart.map.variableId &&
-                this.chart.table.columnsByVarId.get(chart.map.variableId)
+                this.chart.table.columnsByOwidVarId.get(chart.map.variableId)
             if (!hasVariable && chart.data.primaryVariableId)
                 runInAction(
                     () =>
@@ -76,7 +76,7 @@ export class MapData extends ChartTransform {
         const { map } = this
         return (
             map.variableId !== undefined &&
-            !!this.chart.table.columnsByVarId.get(map.variableId)
+            !!this.chart.table.columnsByOwidVarId.get(map.variableId)
         )
     }
 
