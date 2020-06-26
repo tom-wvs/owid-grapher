@@ -348,7 +348,7 @@ export class ChartConfig {
     @computed get selectedCountryNames() {
         // Get the countries that are already selected
         let countryCodes = EntityUrlBuilder.queryParamToEntities(
-            this.url.params.country || ""
+            this.url?.params.country || ""
         )
         // Get the countries from the url
         countryCodes = countryCodes.concat(

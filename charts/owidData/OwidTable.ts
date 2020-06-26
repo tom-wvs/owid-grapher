@@ -2,7 +2,7 @@ import { OwidVariablesAndEntityKey, EntityMeta } from "./OwidVariableSet"
 import { OwidVariable, OwidVariableDisplaySettings } from "./OwidVariable"
 import { slugify, groupBy } from "charts/Util"
 import { max, min } from "lodash"
-import { computed, action } from "mobx"
+import { computed, action, observable } from "mobx"
 import { OwidSource } from "./OwidSource"
 import { populationMap } from "charts/PopulationMap"
 
@@ -30,15 +30,9 @@ interface OwidRow extends Row {
     // _y: boolean
 }
 
-interface OwidTripletTable {
-    year: DayColumn | YearColumn
-    entity: EntityColumn
-    value: AbstractColumn
-}
-
-interface ColumnSpec {
+export interface ColumnSpec {
     slug: columnSlug
-    name: string
+    name?: string
     owidVariableId?: int
     unit?: string
     shortUnit?: string
@@ -153,7 +147,7 @@ declare type TableSpec = Map<columnSlug, ColumnSpec>
 
 abstract class AbstractTable<ROW_TYPE> {
     rows: ROW_TYPE[]
-    spec: TableSpec
+    @observable spec: TableSpec
     constructor(rows: ROW_TYPE[], specs?: TableSpec) {
         this.rows = rows
         this.spec = specs ?? AbstractTable.makeSpecsFromRows(rows)
@@ -163,7 +157,7 @@ abstract class AbstractTable<ROW_TYPE> {
         const map = new Map()
         rows.forEach(row => {
             Object.keys(row).forEach(key => {
-                map.set(key, { name: key, slug: key })
+                map.set(key, { slug: key })
             })
         })
         return map
@@ -231,6 +225,14 @@ export class OwidTable extends AbstractTable<OwidRow> {
     printStats() {
         console.log(this.minYear, this.maxYear)
         console.log(this.toDelimited(",", 10))
+    }
+
+    addColumn(spec: ColumnSpec, rowFn: (row: Row) => any) {
+        const slug = spec.slug
+        this.spec.set(spec.slug, spec)
+        this.rows.forEach(row => {
+            row[slug] = rowFn(row)
+        })
     }
 
     // todo: have a debug param and spit out filtered, etc?
@@ -358,12 +360,10 @@ export class OwidTable extends AbstractTable<OwidRow> {
         const entityMetaById: { [id: string]: EntityMeta } = json.entityKey
         const columnSpecs = new Map()
         columnSpecs.set("entityName", {
-            name: "entityName",
             slug: "entityName"
         })
-        columnSpecs.set("entityId", { name: "entityId", slug: "entityId" })
+        columnSpecs.set("entityId", { slug: "entityId" })
         columnSpecs.set("entityCode", {
-            name: "entityCode",
             slug: "entityCode"
         })
 
@@ -382,8 +382,8 @@ export class OwidTable extends AbstractTable<OwidRow> {
             columnSpecs.set(columnSlug, columnSpec)
 
             columnSpec.isDailyMeasurement
-                ? columnSpecs.set("day", { name: "day", slug: "day" })
-                : columnSpecs.set("year", { name: "year", slug: "year" })
+                ? columnSpecs.set("day", { slug: "day" })
+                : columnSpecs.set("year", { slug: "year" })
 
             // todo: remove. move annotations to their own first class column.
             let annotationColumnName: string
@@ -394,7 +394,6 @@ export class OwidTable extends AbstractTable<OwidRow> {
                     variable.display.entityAnnotationsMap
                 )
                 columnSpecs.set(annotationColumnName, {
-                    name: annotationColumnName,
                     slug: annotationColumnName
                 })
             }
