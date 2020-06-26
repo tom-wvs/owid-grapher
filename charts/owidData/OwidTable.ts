@@ -379,11 +379,10 @@ export class OwidTable extends AbstractTable<OwidRow> {
 
             const columnSpec = this.columnSpecFromVariable(variable)
             const columnSlug = columnSpec.slug
-            columnSpecs.set(columnSlug, columnSpec)
-
             columnSpec.isDailyMeasurement
                 ? columnSpecs.set("day", { slug: "day" })
                 : columnSpecs.set("year", { slug: "year" })
+            columnSpecs.set(columnSlug, columnSpec)
 
             // todo: remove. move annotations to their own first class column.
             let annotationColumnName: string
