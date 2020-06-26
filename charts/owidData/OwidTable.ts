@@ -176,11 +176,15 @@ export class OwidTable extends AbstractTable<OwidRow> {
     }
 
     private _filterCount = 0
+    private _minPopulationSize?: number
+    private _selectedCountryNames?: Set<string>
     @action.bound applyFilters(
         selectedCountryNames: Set<string>,
         minPopulationSize?: int
     ) {
         if (minPopulationSize === undefined && !this._filterCount) return this
+        this._minPopulationSize = minPopulationSize
+        this._selectedCountryNames = selectedCountryNames
         this._filterCount = 0
         this.rows.forEach(row => {
             const name = row.entityName
@@ -193,14 +197,6 @@ export class OwidTable extends AbstractTable<OwidRow> {
         })
         return this
     }
-
-    // const filters = this.filters
-    // if (filters.length)
-    //         variablesById[
-    //             key
-    //         ] = variable.getFilteredVariable((name: string) =>
-    //             this.isEntityFiltered(name)
-    //         )
 
     @computed get columnsByName() {
         const columns = this.columnsByVarId

@@ -69,6 +69,7 @@ import { TickFormattingOptions } from "./TickFormattingOptions"
 import { ColorScaleConfigProps } from "./ColorScaleConfig"
 import { countries } from "utils/countries"
 import { DataTableTransform } from "./DataTableTransform"
+import { getWindowQueryParams } from "utils/client/url"
 
 declare const App: any
 declare const window: any
@@ -343,9 +344,17 @@ export class ChartConfig {
         )
     }
 
+    // todo: refactor
     @computed get selectedCountryNames() {
-        const countryCodes = EntityUrlBuilder.queryParamToEntities(
+        // Get the countries that are already selected
+        let countryCodes = EntityUrlBuilder.queryParamToEntities(
             this.url.params.country || ""
+        )
+        // Get the countries from the url
+        countryCodes = countryCodes.concat(
+            EntityUrlBuilder.queryParamToEntities(
+                getWindowQueryParams().country || ""
+            )
         )
         return new Set<string>(
             countryCodes
@@ -474,8 +483,6 @@ export class ChartConfig {
 
         this.data = new ChartData(this)
         this.url = new ChartUrl(this, options.queryStr)
-
-        this.disposers.push(reaction(() => this.filters, this.downloadData))
 
         // The chart props after consuming the URL parameters, but before any user interaction
         this.initialPropsRaw = toJS(this.props)
