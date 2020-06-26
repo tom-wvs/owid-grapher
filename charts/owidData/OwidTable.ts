@@ -291,6 +291,22 @@ export class OwidTable extends AbstractTable<OwidRow> {
         return this.columnNames.has("day")
     }
 
+    specToObject() {
+        const spec = this.spec
+        const output: any = {}
+        Array.from(this.spec.keys()).forEach(slug => {
+            output[slug] = spec.get(slug)
+        })
+        return output
+    }
+
+    toJs() {
+        return {
+            columns: this.specToObject(),
+            rows: this.rows
+        }
+    }
+
     private static annotationsToMap(annotations: string) {
         // Todo: let's delete this and switch to traditional columns
         const entityAnnotationsMap = new Map<string, string>()
