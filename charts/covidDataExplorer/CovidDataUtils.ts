@@ -181,35 +181,6 @@ export const makeCountryOptions = (
     })
 }
 
-type MetricKey = {
-    [K in MetricKind]: number
-}
-
-export const buildCovidVariableId = (
-    name: MetricKind,
-    perCapita: number,
-    rollingAverage?: number,
-    daily?: boolean
-): number => {
-    const arbitraryStartingPrefix = 1145
-    const names: MetricKey = {
-        tests: 0,
-        cases: 1,
-        deaths: 2,
-        positive_test_rate: 3,
-        case_fatality_rate: 4,
-        tests_per_case: 5
-    }
-    const parts = [
-        arbitraryStartingPrefix,
-        names[name],
-        daily ? 1 : 0,
-        perCapita,
-        rollingAverage
-    ]
-    return parseInt(parts.join(""))
-}
-
 function buildEntityAnnotations(
     data: ParsedCovidCsvRow[],
     metric: MetricKind
@@ -281,12 +252,12 @@ export const getTrajectoryOptions = (
 
 export const addDaysSinceColumn = (
     table: OwidTable,
-    sourceColumnName: string,
+    sourceColumnSlug: string,
     id: number,
     threshold: number,
     title: string
 ) => {
-    const slug = `daysSince${sourceColumnName}Hit${threshold}`
+    const slug = `daysSince${sourceColumnSlug}Hit${threshold}`
     const spec: ColumnSpec = {
         ...columnSpecs.days_since,
         name: title,
@@ -298,7 +269,7 @@ export const addDaysSinceColumn = (
     let countryExceededThresholdOnDay: number
     table.addColumn(spec, row => {
         if (row.entityName !== currentCountry) {
-            const sourceValue = row[sourceColumnName]
+            const sourceValue = row[sourceColumnSlug]
             if (sourceValue === undefined || sourceValue < threshold)
                 return undefined
             currentCountry = row.entityName
@@ -314,41 +285,35 @@ const trajectoryOptions = {
         total: {
             title: "Days since the 5th total confirmed death",
             threshold: 5,
-            id: 4561,
-            sourceColumn: "total_deaths"
+            id: 4561
         },
         daily: {
             title: "Days since 5 daily new deaths first reported",
             threshold: 5,
-            id: 4562,
-            sourceColumn: "new_deaths"
+            id: 4562
         },
         perCapita: {
             title: "Days since total confirmed deaths reached 0.1 per million",
             threshold: 0.1,
-            id: 4563,
-            sourceColumn: "new_deaths" // todo: fix
+            id: 4563
         }
     },
     cases: {
         total: {
             title: "Days since the 100th confirmed case",
             threshold: 100,
-            id: 4564,
-            sourceColumn: "total_cases"
+            id: 4564
         },
         daily: {
             title: "Days since confirmed cases first reached 30 per day",
             threshold: 30,
-            id: 4565,
-            sourceColumn: "new_cases"
+            id: 4565
         },
         perCapita: {
             title:
                 "Days since the total confirmed cases per million people reached 1",
             threshold: 1,
-            id: 4566,
-            sourceColumn: "new_cases" // todo: fix
+            id: 4566
         }
     }
 }

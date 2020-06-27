@@ -40,7 +40,6 @@ import { CountryPicker } from "./CovidCountryPicker"
 import { CovidQueryParams, CovidUrl } from "./CovidChartUrl"
 import {
     fetchAndParseData,
-    buildCovidVariableId,
     makeCountryOptions,
     covidDataPath,
     covidLastUpdatedPath,
@@ -658,28 +657,24 @@ export class CovidDataExplorer extends React.Component<{
         perCapita = this.constrainedParams.perCapita ? this.perCapitaDivisor : 1
     ) {
         const smoothing = this.constrainedParams.smoothing
-        const id = buildCovidVariableId(columnName, perCapita, smoothing, daily)
-        const table = this.chart.table
-        if (table.columnsByOwidVarId.has(id)) return
-
-        // The 7 day test smoothing is already calculated, so for now just reuse that instead of
-        // recalculating.
-        const alreadySmoothed =
-            (columnName === "tests" ||
-                columnName === "tests_per_case" ||
-                columnName === "positive_test_rate") &&
-            smoothing === 7
-
-        //     alreadySmoothed ? 1 : smoothing,
-
         const spec = buildColumnSpec(
-            id,
             columnName,
             perCapita,
             daily,
             smoothing,
             columnName === "tests" ? "" : " - " + this.lastUpdated
         )
+
+        const table = this.chart.table
+        if (table.columnsBySlug.has(spec.slug)) return
+
+        // The 7 day test smoothing is already calculated, so for now just reuse that instead of recalculating.
+        const alreadySmoothed =
+            (columnName === "tests" ||
+                columnName === "tests_per_case" ||
+                columnName === "positive_test_rate") &&
+            smoothing === 7
+
         if (perCapita > 1) {
             const originalRowFn = rowFn
             rowFn = row => {
@@ -705,15 +700,15 @@ export class CovidDataExplorer extends React.Component<{
 
     @computed get currentYVarId() {
         const params = this.constrainedParams
-        return buildCovidVariableId(
+        return buildColumnSpec(
             this.metricName,
             params.perCapita ? this.perCapitaDivisor : 1,
-            params.smoothing,
-            params.dailyFreq
-        )
+            params.dailyFreq,
+            params.smoothing
+        ).owidVariableId
     }
 
-    get metricName(): MetricKind {
+    private get metricName(): MetricKind {
         const params = this.constrainedParams
         if (params.testsMetric) return "tests"
         if (params.casesMetric) return "cases"
@@ -723,12 +718,19 @@ export class CovidDataExplorer extends React.Component<{
         return "positive_test_rate"
     }
 
-    // We are computing variables clientside so they don't have a variable index. The variable index is used by Chart
-    // in a number of places, so we still need a unique one per variable. The way our system works, changing things like
-    // frequency or per capita would be in effect creating a new variable. So we need to generate unique variable ids
-    // for all of these combinations.
     initRequestedColumns() {
         const params = this.constrainedParams
+
+        if (params.casesMetric && params.dailyFreq)
+            this.initColumn(this.metricName, row => row.new_cases, true)
+        if (params.casesMetric && params.totalFreq)
+            this.initColumn(this.metricName, row => row.total_cases)
+
+        const needsDeaths = params.testsMetric && params.aligned
+        if ((params.deathsMetric && params.dailyFreq) || needsDeaths)
+            this.initColumn("deaths", row => row.new_deaths, true)
+        if ((params.deathsMetric && params.totalFreq) || needsDeaths)
+            this.initColumn("deaths", row => row.total_deaths)
 
         if (params.testsMetric && params.dailyFreq)
             this.initColumn(
@@ -742,16 +744,6 @@ export class CovidDataExplorer extends React.Component<{
             )
         if (params.testsMetric && params.totalFreq)
             this.initColumn(this.metricName, row => row.total_tests)
-
-        if (params.casesMetric && params.dailyFreq)
-            this.initColumn(this.metricName, row => row.new_cases, true)
-        if (params.casesMetric && params.totalFreq)
-            this.initColumn(this.metricName, row => row.total_cases)
-
-        if (params.deathsMetric && params.dailyFreq)
-            this.initColumn(this.metricName, row => row.new_deaths, true)
-        if (params.deathsMetric && params.totalFreq)
-            this.initColumn(this.metricName, row => row.total_deaths)
 
         if (params.cfrMetric && params.dailyFreq)
             this.initColumn(
@@ -775,18 +767,17 @@ export class CovidDataExplorer extends React.Component<{
 
         if (params.testsPerCaseMetric && params.dailyFreq) {
             if (params.smoothing) {
-                this.addNewCasesSmoothedColumn()
+                const casesSlug = this.addNewCasesSmoothedColumn()
                 this.initColumn(
                     this.metricName,
                     row => {
                         if (
                             row.new_tests_smoothed === undefined ||
-                            !(row as any).new_cases_smoothed
+                            !(row as any)[casesSlug]
                         )
                             return undefined
                         const tpc =
-                            row.new_tests_smoothed /
-                            (row as any).new_cases_smoothed
+                            row.new_tests_smoothed / (row as any)[casesSlug]
                         return tpc >= 1 ? tpc : undefined
                     },
                     true
@@ -813,7 +804,7 @@ export class CovidDataExplorer extends React.Component<{
             })
 
         if (params.positiveTestRate && params.dailyFreq) {
-            this.addNewCasesSmoothedColumn()
+            const casesSlug = this.addNewCasesSmoothedColumn()
             this.initColumn(
                 this.metricName,
                 row => {
@@ -824,7 +815,7 @@ export class CovidDataExplorer extends React.Component<{
 
                     const cases =
                         params.smoothing === 7
-                            ? (row as any).new_cases_smoothed
+                            ? (row as any)[casesSlug]
                             : row.new_cases
 
                     if (!testCount) return undefined
@@ -857,10 +848,10 @@ export class CovidDataExplorer extends React.Component<{
 
     private addNewCasesSmoothedColumn() {
         const smoothing = this.constrainedParams.smoothing
-
+        const slug = `new_cases_smoothed_${smoothing}day`
         const spec = {
             id: 1,
-            slug: `new_cases_smoothed`
+            slug
         }
 
         this.chart.table.addRollingAverageColumn(
@@ -870,38 +861,9 @@ export class CovidDataExplorer extends React.Component<{
             "day",
             "entityName"
         )
+
+        return slug
     }
-
-    // @computed get daysSinceVariableId() {
-    //     const params = this.constrainedParams
-    //     let sourceId = this.currentYVarId
-    //     // If we are using the cases metric, we use that for days since, else we use a formula
-    //     // that uses the deaths metric.
-    //     if (!params.casesMetric) {
-    //         sourceId = params.dailyFreq
-    //             ? this.initColumnAndGetId(
-    //                   "deaths",
-    //                   row => row.new_deaths,
-    //                   true,
-    //                   params.perCapita ? 1000000 : 1
-    //               )
-    //             : this.initColumnAndGetId(
-    //                   "deaths",
-    //                   row => row.total_deaths,
-    //                   false,
-    //                   params.perCapita ? 1000000 : 1
-    //               )
-    //     }
-
-    //     const id = this.daysSinceVariableId
-    //     if (!this.owidVariableSet.variables[id]) {
-    //         this.owidVariableSet.variables[id] = daysSinceVariable(
-    //             this.owidVariableSet.variables[sourceId],
-    //             this.daysSinceOption.threshold,
-    //             this.daysSinceOption.title
-    //         )
-    //     }
-    // }
 
     @computed get daysSinceOption() {
         const params = this.constrainedParams
@@ -916,8 +878,7 @@ export class CovidDataExplorer extends React.Component<{
     }
 
     updateChart() {
-        // Generating the new chart may take a second so render the Data Explorer controls immediately then
-        // update the chart view.
+        // Updating the chart may take a second so render the Data Explorer controls immediately then the chart.
         setTimeout(() => {
             this.selectionChangeFromBuilder = true
             this._updateChart()
@@ -932,21 +893,17 @@ export class CovidDataExplorer extends React.Component<{
     }
 
     private initTable() {
-        if (this.chart.table.rows.length) return
-        // We manually call this first, before doing the selection thing, because we cannot select data that is not there.
-
         this.addContinentsColumn()
         this.chart.table.addRows(this.props.data)
         this.chart.table.detectSpec()
-        // casesMetric=true&totalFreq=true&s&country=~ISR
     }
 
+    // We can't create a new chart object with every radio change because the Chart component itself
+    // maintains state (for example, which tab is currently active). Temporary workaround is just to
+    // manually update the chart when the chart builderselections change.
+    // todo: cleanup
     @action.bound private _updateChart() {
-        // We can't create a new chart object with every radio change because the Chart component itself
-        // maintains state (for example, which tab is currently active). Temporary workaround is just to
-        // manually update the chart when the chart builderselections change.
-        // todo: cleanup
-        this.initTable()
+        if (!this.chart.table.rows.length) this.initTable()
         this.initRequestedColumns()
         this.chart.applyFilters()
         const chartProps = this.chart.props
@@ -963,8 +920,6 @@ export class CovidDataExplorer extends React.Component<{
 
         // When dimensions changes, chart.variableIds change, which calls downloadData(), which reparses variableSet
         chartProps.dimensions = this.dimensions
-        // Todo: perf improvements
-
         chartProps.map.variableId = this.currentYVarId
         chartProps.map.colorScale.baseColorScheme = this.mapColorScheme
 
@@ -1029,7 +984,7 @@ export class CovidDataExplorer extends React.Component<{
         this.chart.url.externalBaseUrl = `${BAKED_BASE_URL}/${covidDashboardSlug}`
         this._updateChart()
 
-        // this.observeChartEntitySelection()
+        this.observeChartEntitySelection()
 
         this.onResizeThrottled = throttle(this.onResize, 100)
         window.addEventListener("resize", this.onResizeThrottled)

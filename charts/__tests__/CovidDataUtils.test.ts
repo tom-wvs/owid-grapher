@@ -1,14 +1,12 @@
 #! /usr/bin/env yarn jest
 
 import {
-    buildCovidVariableId,
     parseCovidRow,
     makeCountryOptions,
     getLeastUsedColor,
     generateContinentRows,
     addDaysSinceColumn
 } from "../covidDataExplorer/CovidDataUtils"
-import uniq from "lodash/uniq"
 import { csvParse } from "d3-dsv"
 import { testData } from "../../test/fixtures/CovidTestData"
 import { ParsedCovidCsvRow } from "charts/covidDataExplorer/CovidTypes"
@@ -18,20 +16,6 @@ const getRows = () => {
     const testRows: ParsedCovidCsvRow[] = csvParse(testData) as any
     return testRows.map(parseCovidRow)
 }
-
-describe(buildCovidVariableId, () => {
-    it("computes unique variable ids", () => {
-        expect(
-            uniq([
-                buildCovidVariableId("tests", 1000, 3, true),
-                buildCovidVariableId("cases", 1000, 3, true),
-                buildCovidVariableId("tests", 100, 3, true),
-                buildCovidVariableId("tests", 1000, 0, true),
-                buildCovidVariableId("tests", 1000, 3, false)
-            ]).length
-        ).toEqual(5)
-    })
-})
 
 describe(parseCovidRow, () => {
     const parsedRows = getRows()

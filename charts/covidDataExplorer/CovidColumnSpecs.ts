@@ -223,8 +223,36 @@ export const columnSpecs: { [name: string]: ColumnSpec } = {
     }
 }
 
+type MetricKey = {
+    [K in MetricKind]: number
+}
+
+const buildCovidVariableId = (
+    name: MetricKind,
+    perCapita: number,
+    rollingAverage?: number,
+    daily?: boolean
+): number => {
+    const arbitraryStartingPrefix = 1145
+    const names: MetricKey = {
+        tests: 0,
+        cases: 1,
+        deaths: 2,
+        positive_test_rate: 3,
+        case_fatality_rate: 4,
+        tests_per_case: 5
+    }
+    const parts = [
+        arbitraryStartingPrefix,
+        names[name],
+        daily ? 1 : 0,
+        perCapita,
+        rollingAverage
+    ]
+    return parseInt(parts.join(""))
+}
+
 export const buildColumnSpec = (
-    newId: number,
     name: MetricKind,
     perCapita: number,
     daily?: boolean,
@@ -233,13 +261,18 @@ export const buildColumnSpec = (
 ): ColumnSpec => {
     const spec = cloneDeep(columnSpecs[name]) as ColumnSpec
     spec.slug = getColumnSlug(name, perCapita, daily, rollingAverage)
-    spec.owidVariableId = newId
+    spec.owidVariableId = buildCovidVariableId(
+        name,
+        perCapita,
+        rollingAverage,
+        daily
+    )
     spec.source!.name = `${spec.source!.name}${updatedTime}`
 
     const messages: { [index: number]: string } = {
         1: "",
-        1000: " per thousand people",
-        1000000: " per million people"
+        1e3: " per thousand people",
+        1e6: " per million people"
     }
 
     spec.display!.name = `${daily ? "Daily " : "Cumulative "}${
