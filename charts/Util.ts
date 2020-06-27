@@ -718,7 +718,7 @@ export function computeRollingAverage(
             windowIndex++
         ) {
             const value = numbers[windowIndex]
-            if (value !== undefined) {
+            if (value !== undefined && value !== null) {
                 sum += value!
                 count++
             }

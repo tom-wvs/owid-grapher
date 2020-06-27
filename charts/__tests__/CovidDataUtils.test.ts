@@ -5,7 +5,8 @@ import {
     parseCovidRow,
     makeCountryOptions,
     getLeastUsedColor,
-    generateContinentRows
+    generateContinentRows,
+    addDaysSinceColumn
 } from "../covidDataExplorer/CovidDataUtils"
 import uniq from "lodash/uniq"
 import { csvParse } from "d3-dsv"
@@ -62,7 +63,7 @@ describe("build covid column", () => {
     const table = new OwidTable(parsedRows)
     table.addRollingAverageColumn(
         { slug: "totalCasesSmoothed" },
-        2,
+        3,
         row => row.total_cases,
         "day",
         "entityName"
@@ -71,14 +72,18 @@ describe("build covid column", () => {
     it("correctly builds a grapher variable", () => {
         expect(table.rows[3].totalCasesSmoothed).toEqual(14.5)
     })
-    // it("correctly builds a days since variable", () => {
-    //     const variable = daysSinceVariable(
-    //         totalCases3DaySmoothing,
-    //         1,
-    //         "Some title"
-    //     )
-    //     expect(variable.values[3]).toEqual(12)
-    // })
+
+    it("correctly builds a days since variable", () => {
+        const slug = addDaysSinceColumn(
+            table,
+            "totalCasesSmoothed",
+            123,
+            5,
+            "Some title"
+        )
+        expect(table.rows[2][slug]).toEqual(0)
+        expect(table.rows[3][slug]).toEqual(1)
+    })
 })
 
 describe(getLeastUsedColor, () => {

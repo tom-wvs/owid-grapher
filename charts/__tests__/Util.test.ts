@@ -79,10 +79,10 @@ describe(getStartEndValues, () => {
 
 describe(computeRollingAverage, () => {
     const testCases: {
-        numbers: (number | undefined)[]
+        numbers: (number | undefined | null)[]
         window: number
         align: "center" | "right"
-        result: (number | undefined)[]
+        result: (number | undefined | null)[]
     }[] = [
         // no smoothing
         {
@@ -98,10 +98,10 @@ describe(computeRollingAverage, () => {
             result: [1, 0, 0, 0]
         },
         {
-            numbers: [1, undefined, undefined, -1, 1],
+            numbers: [1, undefined, null, -1, 1],
             window: 2,
             align: "right",
-            result: [1, undefined, undefined, -1, 0]
+            result: [1, undefined, null, -1, 0]
         },
         {
             numbers: [1, 3, 5, 1],
@@ -144,6 +144,22 @@ describe(insertMissingValuePlaceholders, () => {
             ).toEqual(testCase.expected)
         })
     })
+
+    // const testCasesWithMissing = [
+    //     {
+    //         values: [2, -3, 10],
+    //         years: [0, 2, 3],
+    //         expected: [2, null, -3, 10]
+    //     }
+    // ]
+
+    // it("computes the rolling average for data with missing values", () => {
+    //     testCasesWithMissing.forEach(testCase => {
+    //         expect(
+    //             computeRollingAverage(insertMissingValuePlaceholders(testCase.values, testCase.years), 2)
+    //         ).toEqual(testCase.expected)
+    //     })
+    // })
 })
 
 describe(formatDay, () => {

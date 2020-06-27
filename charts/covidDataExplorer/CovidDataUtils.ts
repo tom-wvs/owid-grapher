@@ -20,7 +20,7 @@ import {
 } from "./CovidTypes"
 import { variablePartials } from "./CovidVariablePartials"
 import { csv } from "d3-fetch"
-import { ColumnSpec } from "charts/owidData/OwidTable"
+import { ColumnSpec, OwidTable } from "charts/owidData/OwidTable"
 
 const keepStrings = new Set(
     `iso_code location date tests_units continent`.split(" ")
@@ -321,6 +321,36 @@ export const getTrajectoryOptions = (
         special: getColumnSlug(metric, perCapita ? 1e6 : 1, daily, smoothing)
     }
     return option
+}
+
+export const addDaysSinceColumn = (
+    table: OwidTable,
+    sourceColumnName: string,
+    id: number,
+    threshold: number,
+    title: string
+) => {
+    const slug = `daysSince${sourceColumnName}Hit${threshold}`
+    const spec: ColumnSpec = {
+        ...variablePartials.days_since,
+        name: title,
+        owidVariableId: id,
+        slug
+    }
+
+    let currentCountry: number
+    let countryExceededThresholdOnDay: number
+    table.addColumn(spec, row => {
+        if (row.entityName !== currentCountry) {
+            const sourceValue = row[sourceColumnName]
+            if (sourceValue === undefined || sourceValue < threshold)
+                return undefined
+            currentCountry = row.entityName
+            countryExceededThresholdOnDay = row.day
+        }
+        return row.day - countryExceededThresholdOnDay
+    })
+    return slug
 }
 
 const trajectoryOptions = {

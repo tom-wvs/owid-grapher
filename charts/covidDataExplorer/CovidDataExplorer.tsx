@@ -46,7 +46,8 @@ import {
     covidLastUpdatedPath,
     getTrajectoryOptions,
     getLeastUsedColor,
-    buildColumnSpec
+    buildColumnSpec,
+    addDaysSinceColumn
 } from "./CovidDataUtils"
 import { BAKED_BASE_URL } from "settings"
 import moment from "moment"
@@ -845,40 +846,14 @@ export class CovidDataExplorer extends React.Component<{
 
         if (params.aligned) {
             const option = this.daysSinceOption
-            this.addDaysSinceColumn(
+            addDaysSinceColumn(
+                this.chart.table,
                 option.special,
                 option.id,
                 option.threshold,
                 option.title
             )
         }
-    }
-
-    private addDaysSinceColumn(
-        sourceColumnName: string,
-        id: number,
-        threshold: number,
-        title: string
-    ) {
-        const spec: ColumnSpec = {
-            ...variablePartials.days_since,
-            name: title,
-            owidVariableId: id,
-            slug: `daysSince${sourceColumnName}Hit${threshold}`
-        }
-
-        let currentCountry: number
-        let countryExceededThresholdOnDay: number
-        this.chart.table.addColumn(spec, row => {
-            if (row.entityName !== currentCountry) {
-                const sourceValue = row[sourceColumnName]
-                if (sourceValue === undefined || sourceValue < threshold)
-                    return undefined
-                currentCountry = row.entityName
-                countryExceededThresholdOnDay = row.day
-            }
-            return row.day - countryExceededThresholdOnDay
-        })
     }
 
     private addNewCasesSmoothedColumn() {
