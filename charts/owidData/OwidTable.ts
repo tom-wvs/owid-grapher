@@ -4,12 +4,14 @@ import {
     slugify,
     groupBy,
     computeRollingAverage,
-    insertMissingValuePlaceholders
+    insertMissingValuePlaceholders,
+    diffDateISOStringInDays
 } from "charts/Util"
 import { max, min, flatten } from "lodash"
 import { computed, action, observable } from "mobx"
 import { OwidSource } from "./OwidSource"
 import { populationMap } from "charts/PopulationMap"
+import { EPOCH_DATE } from "settings"
 
 declare type int = number
 declare type year = int
@@ -472,10 +474,21 @@ export class OwidTable extends AbstractTable<OwidRow> {
             const timeColumnName = columnSpec.isDailyMeasurement
                 ? "day"
                 : "year"
+
+            // Todo: remove
+            const display = variable.display
+            const yearsNeedTransform =
+                display.yearIsDay &&
+                display.zeroDay !== undefined &&
+                display.zeroDay !== EPOCH_DATE
+            const years = yearsNeedTransform
+                ? this.convertLegacyYears(variable.years, display.zeroDay!)
+                : variable.years
+
             const newRows = variable.values.map((value, index) => {
                 const entityName = entityNames[index]
                 const row: any = {
-                    [timeColumnName]: variable.years[index],
+                    [timeColumnName]: years[index],
                     [columnSlug]: value,
                     entityName,
                     entityId: variable.entities[index],
@@ -498,5 +511,16 @@ export class OwidTable extends AbstractTable<OwidRow> {
         )
 
         return new OwidTable(joinedRows, columnSpecs)
+    }
+
+    // todo: remove
+    private static convertLegacyYears(years: number[], zeroDay: string) {
+        // Only shift years if the variable zeroDay is different from EPOCH_DATE
+        // When the dataset uses days (`yearIsDay == true`), the days are expressed as integer
+        // days since the specified `zeroDay`, which can be different for different variables.
+        // In order to correctly join variables with different `zeroDay`s in a single chart, we
+        // normalize all days to be in reference to a single epoch date.
+        const diff = diffDateISOStringInDays(zeroDay, EPOCH_DATE)
+        return years.map(y => y + diff)
     }
 }

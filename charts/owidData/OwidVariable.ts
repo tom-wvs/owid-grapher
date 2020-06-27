@@ -1,6 +1,5 @@
-import { extend, diffDateISOStringInDays } from "../Util"
+import { extend } from "../Util"
 import { observable, computed } from "mobx"
-import { EPOCH_DATE } from "settings"
 import { OwidSource } from "./OwidSource"
 
 export class OwidVariableDisplaySettings {
@@ -32,7 +31,7 @@ export class OwidVariable {
     display: OwidVariableDisplaySettings = new OwidVariableDisplaySettings()
 
     @observable.struct source!: OwidSource
-    @observable.ref private rawYears: number[] = []
+    @observable.ref years: number[] = []
     @observable.ref entityNames: string[] = []
     @observable.ref entityCodes: string[] = []
     @observable.ref entities: number[] = []
@@ -40,11 +39,7 @@ export class OwidVariable {
 
     constructor(json: any) {
         for (const key in this) {
-            if (key === "rawYears") {
-                // If the dataset is using `yearIsDay`, we need to normalize days to a single epoch.
-                // See `years` property below.
-                this.rawYears = json.years
-            } else if (key in json) {
+            if (key in json) {
                 if (key === "display") {
                     extend(this.display, json.display)
                 } else {
@@ -52,25 +47,5 @@ export class OwidVariable {
                 }
             }
         }
-    }
-
-    @computed get years(): number[] {
-        // Only shift years if the variable zeroDay is different from EPOCH_DATE
-        if (
-            this.display.yearIsDay &&
-            this.display.zeroDay !== undefined &&
-            this.display.zeroDay !== EPOCH_DATE
-        ) {
-            // When the dataset uses days (`yearIsDay == true`), the days are expressed as integer
-            // days since the specified `zeroDay`, which can be different for different variables.
-            // In order to correctly join variables with different `zeroDay`s in a single chart, we
-            // normalize all days to be in reference to a single epoch date.
-            const diff = diffDateISOStringInDays(
-                this.display.zeroDay,
-                EPOCH_DATE
-            )
-            return this.rawYears.map(y => y + diff)
-        }
-        return this.rawYears
     }
 }
