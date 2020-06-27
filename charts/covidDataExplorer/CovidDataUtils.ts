@@ -6,7 +6,6 @@ import {
     map,
     groupBy,
     parseFloatOrUndefined,
-    insertMissingValuePlaceholders,
     difference,
     entries,
     minBy,
@@ -185,49 +184,6 @@ export const makeCountryOptions = (
     })
 }
 
-export const daysSinceVariable = (
-    owidVariable: OwidVariable,
-    threshold: number,
-    title: string
-) => {
-    let currentCountry: number
-    let firstCountryDate: number
-    const dataWeNeed = owidVariable.values
-        .map((value, index) => {
-            const entity = owidVariable.entities[index]
-            const entityName = owidVariable.entityNames[index]
-            const year = owidVariable.years[index]
-            if (entity !== currentCountry) {
-                if (value < threshold) return undefined
-                currentCountry = entity
-                firstCountryDate = year
-            }
-            return {
-                year,
-                entity,
-                entityName,
-                // Not all countries have a row for each day, so we need to compute the difference between the current row and the first threshold
-                // row for that country.
-                value: year - firstCountryDate
-            }
-        })
-        .filter(row => row)
-
-    const partial = variablePartials.days_since
-    partial.name = title
-
-    const variable: Partial<OwidVariable> = {
-        ...partial,
-        years: dataWeNeed.map(row => row!.year),
-        entities: dataWeNeed.map(row => row!.entity),
-        entityNames: dataWeNeed.map(row => row!.entityName),
-        values: dataWeNeed.map(row => row!.value),
-        display: { includeInTable: false }
-    }
-
-    return variable as OwidVariable
-}
-
 type MetricKey = {
     [K in MetricKind]: number
 }
@@ -255,42 +211,6 @@ export const buildCovidVariableId = (
         rollingAverage
     ]
     return parseInt(parts.join(""))
-}
-
-const computeRollingAveragesForEachCountry = (
-    values: number[],
-    entities: string[],
-    years: number[],
-    rollingAverage: number
-) => {
-    const averages: number[][] = []
-    let currentEntity = entities[0]
-    let currentValues: number[] = []
-    let currentDates: number[] = []
-    // Assumes items are sorted by entity
-    for (let i = 0; i < entities.length; i++) {
-        const entity = entities[i]
-        if (currentEntity !== entity) {
-            averages.push(
-                computeRollingAverage(
-                    insertMissingValuePlaceholders(currentValues, currentDates),
-                    rollingAverage
-                ).filter(value => value !== undefined) as number[]
-            )
-            currentValues = []
-            currentDates = []
-            currentEntity = entity
-        }
-        currentValues.push(values[i])
-        currentDates.push(years[i])
-    }
-    averages.push(
-        computeRollingAverage(
-            insertMissingValuePlaceholders(currentValues, currentDates),
-            rollingAverage
-        ).filter(value => value !== undefined) as number[]
-    )
-    return flatten(averages)
 }
 
 function buildEntityAnnotations(
@@ -326,99 +246,6 @@ India: Note that on June 17 earlier deaths were added to the total.`
     return undefined
 }
 
-export const computeCovidColumn = (
-    rows: ParsedCovidCsvRow[],
-    rowFn: RowAccessor,
-    perCapita: number,
-    rollingAverage?: number
-) => {
-    const mappedRows = rows
-        .map(row => {
-            let value = rowFn(row)
-            const year = dateToYear(row.date)
-            const entityName = row.location
-            if (value === undefined) return undefined
-
-            if (perCapita > 1) {
-                const pop = row.population
-                if (!pop)
-                    throw new Error(`Missing population for ${row.location}`)
-                value = perCapita * (value / pop)
-            }
-
-            return {
-                value,
-                year,
-                entityName,
-                row
-            }
-        })
-        .filter(i => i)
-    const years = mappedRows.map(row => row!.year)
-    const entityNames = mappedRows.map(row => row!.entityName)
-    const rowPointers = mappedRows.map(row => row!.row)
-    let values = mappedRows.map(row => row!.value)
-
-    if (rollingAverage)
-        values = computeRollingAveragesForEachCountry(
-            values,
-            entityNames,
-            years,
-            rollingAverage
-        )
-
-    // This should never throw but keep it here in case something goes wrong in our building of the runtime variables
-    // so we will fail and can spot it.
-    if (
-        years.length !== values.length &&
-        values.length !== entityNames.length
-    ) {
-        throw new Error(`Length mismatch when building variables.`)
-    }
-
-    return {
-        years,
-        entityNames,
-        values,
-        rows: rowPointers
-    }
-}
-
-export const buildCovidVariable = (
-    newId: number,
-    name: MetricKind,
-    countryMap: Map<string, number>,
-    rows: ParsedCovidCsvRow[],
-    rowFn: RowAccessor,
-    perCapita: number,
-    rollingAverage?: number,
-    daily?: boolean,
-    updatedTime?: string
-): OwidVariable => {
-    const partial = buildColumnSpec(
-        newId,
-        name,
-        perCapita,
-        daily,
-        rollingAverage,
-        updatedTime
-    )
-
-    const column = computeCovidColumn(rows, rowFn, perCapita, rollingAverage)
-
-    const entities = column.entityNames.map(name =>
-        countryMap.get(name)
-    ) as number[]
-
-    const variable: Partial<OwidVariable> = {
-        ...partial,
-        ...column,
-        entities
-    }
-
-    return variable as OwidVariable
-}
-
 export const buildColumnSpec = (
     newId: number,
     name: MetricKind,
@@ -428,7 +255,18 @@ export const buildColumnSpec = (
     updatedTime?: string
 ): ColumnSpec => {
     const spec = cloneDeep(variablePartials[name]) as ColumnSpec
-    spec.slug = `${newId}-covid-${name}`
+    spec.slug = [
+        name,
+        perCapita === 1e3
+            ? "perThousand"
+            : perCapita === 1e6
+            ? "perMil"
+            : undefined,
+        daily ? "daily" : "cumulative",
+        rollingAverage ? rollingAverage + "DayAvg" : undefined
+    ]
+        .filter(i => i)
+        .join("-")
     spec.owidVariableId = newId
     spec.source!.name = `${spec.source!.name}${updatedTime}`
 
@@ -475,30 +313,42 @@ const trajectoryOptions = {
     deaths: {
         total: {
             title: "Days since the 5th total confirmed death",
-            threshold: 5
+            threshold: 5,
+            id: 4561,
+            sourceColumn: "total_deaths"
         },
         daily: {
             title: "Days since 5 daily new deaths first reported",
-            threshold: 5
+            threshold: 5,
+            id: 4562,
+            sourceColumn: "new_deaths"
         },
         perCapita: {
             title: "Days since total confirmed deaths reached 0.1 per million",
-            threshold: 0.1
+            threshold: 0.1,
+            id: 4563,
+            sourceColumn: "new_deaths" // todo: fix
         }
     },
     cases: {
         total: {
             title: "Days since the 100th confirmed case",
-            threshold: 100
+            threshold: 100,
+            id: 4564,
+            sourceColumn: "total_cases"
         },
         daily: {
             title: "Days since confirmed cases first reached 30 per day",
-            threshold: 30
+            threshold: 30,
+            id: 4565,
+            sourceColumn: "new_cases"
         },
         perCapita: {
             title:
                 "Days since the total confirmed cases per million people reached 1",
-            threshold: 1
+            threshold: 1,
+            id: 4566,
+            sourceColumn: "new_cases" // todo: fix
         }
     }
 }

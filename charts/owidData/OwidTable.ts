@@ -1,7 +1,12 @@
 import { OwidVariablesAndEntityKey, EntityMeta } from "./OwidVariableSet"
 import { OwidVariable, OwidVariableDisplaySettings } from "./OwidVariable"
-import { slugify, groupBy } from "charts/Util"
-import { max, min } from "lodash"
+import {
+    slugify,
+    groupBy,
+    computeRollingAverage,
+    insertMissingValuePlaceholders
+} from "charts/Util"
+import { max, min, flatten } from "lodash"
 import { computed, action, observable } from "mobx"
 import { OwidSource } from "./OwidSource"
 import { populationMap } from "charts/PopulationMap"
@@ -13,6 +18,39 @@ declare type columnSlug = string // let's be very restrictive on valid column na
 
 interface Row {
     [columnName: string]: any
+}
+
+// Todo: replace with someone else's library
+const computeRollingAveragesForEachGroup = (
+    rows: Row[],
+    valueAccessor: (row: Row) => any,
+    groupColName: string,
+    dateColName: string,
+    rollingAverage: number
+) => {
+    const groups: number[][] = []
+    let currentGroup = rows[0][groupColName]
+    let currentRows: Row[] = []
+    // Assumes items are sorted by entity
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i]
+        const groupName = row && row[groupColName]
+        if (currentGroup !== groupName) {
+            const averages = computeRollingAverage(
+                insertMissingValuePlaceholders(
+                    currentRows.map(valueAccessor),
+                    currentRows.map(row => row[dateColName])
+                ),
+                rollingAverage
+            ).filter(value => value !== null) as number[]
+            groups.push(averages)
+            if (!row) break
+            currentRows = []
+            currentGroup = groupName
+        }
+        currentRows.push(row)
+    }
+    return flatten(groups)
 }
 
 interface OwidRow extends Row {
@@ -45,7 +83,7 @@ export interface ColumnSpec {
     display?: OwidVariableDisplaySettings
 }
 
-export declare type RowBuilder = (row: Row) => any
+export declare type RowBuilder = (row: Row, index?: int) => any
 
 export abstract class AbstractColumn {
     spec: ColumnSpec
@@ -164,10 +202,31 @@ abstract class AbstractTable<ROW_TYPE> {
         const slug = spec.slug
         this.spec.set(slug, spec)
         this.columns.set(slug, new StringColumn(this, spec))
-        this.rows.forEach(row => {
-            ;(row as any)[slug] = rowFn(row)
+        this.rows.forEach((row, index) => {
+            ;(row as any)[slug] = rowFn(row, index)
         })
+        console.log("adding column " + slug, spec)
         return this
+    }
+
+    addRollingAverageColumn(
+        spec: ColumnSpec,
+        windowSize: int,
+        valueAccessor: (row: Row) => any,
+        dateColName: columnSlug,
+        groupBy: columnSlug
+    ) {
+        const averages = computeRollingAveragesForEachGroup(
+            this.rows,
+            valueAccessor,
+            groupBy,
+            dateColName,
+            windowSize
+        )
+        this.addColumn(
+            spec,
+            (row, index) => (row[spec.slug] = averages[index!])
+        )
     }
 
     @computed get columnsBySlug() {

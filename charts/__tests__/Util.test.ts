@@ -134,7 +134,7 @@ describe(insertMissingValuePlaceholders, () => {
         {
             values: [2, -3, 10],
             years: [0, 2, 3],
-            expected: [2, undefined, -3, 10]
+            expected: [2, null, -3, 10]
         }
     ]
     it("computes the rolling average", () => {

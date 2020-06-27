@@ -40,14 +40,12 @@ import { CountryPicker } from "./CovidCountryPicker"
 import { CovidQueryParams, CovidUrl } from "./CovidChartUrl"
 import {
     fetchAndParseData,
-    daysSinceVariable,
     buildCovidVariableId,
     makeCountryOptions,
     covidDataPath,
     covidLastUpdatedPath,
     getTrajectoryOptions,
     getLeastUsedColor,
-    computeCovidColumn,
     buildColumnSpec
 } from "./CovidDataUtils"
 import { BAKED_BASE_URL } from "settings"
@@ -654,7 +652,7 @@ export class CovidDataExplorer extends React.Component<{
         return this.constrainedParams.aligned ? "ScatterPlot" : "LineChart"
     }
 
-    private initColumnAndGetId(
+    private initColumn(
         columnName: MetricKind,
         rowFn: RowBuilder,
         daily: boolean = false,
@@ -662,6 +660,8 @@ export class CovidDataExplorer extends React.Component<{
     ) {
         const smoothing = this.constrainedParams.smoothing
         const id = buildCovidVariableId(columnName, perCapita, smoothing, daily)
+        const table = this.chart.table
+        if (table.columnsByOwidVarId.has(id)) return
 
         // The 7 day test smoothing is already calculated, so for now just reuse that instead of
         // recalculating.
@@ -671,33 +671,35 @@ export class CovidDataExplorer extends React.Component<{
                 columnName === "positive_test_rate") &&
             smoothing === 7
 
-        const table = this.chart.table
+        //     alreadySmoothed ? 1 : smoothing,
 
-        if (!table.columnsByOwidVarId.has(id)) {
-            const spec = buildColumnSpec(
-                id,
-                columnName,
-                perCapita,
-                daily,
-                smoothing,
-                columnName === "tests" ? "" : " - " + this.lastUpdated
-            )
-            table.addColumn(spec, rowFn)
+        const spec = buildColumnSpec(
+            id,
+            columnName,
+            perCapita,
+            daily,
+            smoothing,
+            columnName === "tests" ? "" : " - " + this.lastUpdated
+        )
+        if (perCapita > 1) {
+            const originalRowFn = rowFn
+            rowFn = row => {
+                const pop = row.population
+                if (!pop)
+                    throw new Error(`Missing population for ${row.location}`)
+                return perCapita * (originalRowFn(row) / pop)
+            }
         }
 
-        // buildCovidVariable(
-        //     id,
-        //     columnName,
-        //     this.countryMap,
-        //     this.props.data,
-        //     rowFn,
-        //     perCapita,
-        //     alreadySmoothed ? 1 : smoothing,
-        //     daily,
-        //     columnName === "tests" ? "" : " - " + this.lastUpdated
-        // )
-
-        return id
+        if (smoothing && !alreadySmoothed)
+            table.addRollingAverageColumn(
+                spec,
+                smoothing,
+                rowFn,
+                "day",
+                "entityName"
+            )
+        else table.addColumn(spec, rowFn)
     }
 
     @computed get currentYVarId() {
@@ -724,11 +726,11 @@ export class CovidDataExplorer extends React.Component<{
     // in a number of places, so we still need a unique one per variable. The way our system works, changing things like
     // frequency or per capita would be in effect creating a new variable. So we need to generate unique variable ids
     // for all of these combinations.
-    initColumns() {
+    initRequestedColumns() {
         const params = this.constrainedParams
 
         if (params.testsMetric && params.dailyFreq)
-            this.initColumnAndGetId(
+            this.initColumn(
                 this.metricName,
                 row => {
                     return params.smoothing === 7
@@ -738,24 +740,20 @@ export class CovidDataExplorer extends React.Component<{
                 true
             )
         if (params.testsMetric && params.totalFreq)
-            this.initColumnAndGetId(this.metricName, row => row.total_tests)
+            this.initColumn(this.metricName, row => row.total_tests)
 
         if (params.casesMetric && params.dailyFreq)
-            this.initColumnAndGetId(this.metricName, row => row.new_cases, true)
+            this.initColumn(this.metricName, row => row.new_cases, true)
         if (params.casesMetric && params.totalFreq)
-            this.initColumnAndGetId(this.metricName, row => row.total_cases)
+            this.initColumn(this.metricName, row => row.total_cases)
 
         if (params.deathsMetric && params.dailyFreq)
-            this.initColumnAndGetId(
-                this.metricName,
-                row => row.new_deaths,
-                true
-            )
+            this.initColumn(this.metricName, row => row.new_deaths, true)
         if (params.deathsMetric && params.totalFreq)
-            this.initColumnAndGetId(this.metricName, row => row.total_deaths)
+            this.initColumn(this.metricName, row => row.total_deaths)
 
         if (params.cfrMetric && params.dailyFreq)
-            this.initColumnAndGetId(
+            this.initColumn(
                 this.metricName,
                 row =>
                     row.total_cases < 100
@@ -766,7 +764,7 @@ export class CovidDataExplorer extends React.Component<{
                 true
             )
         if (params.cfrMetric && params.totalFreq)
-            this.initColumnAndGetId(this.metricName, row =>
+            this.initColumn(this.metricName, row =>
                 row.total_cases < 100
                     ? undefined
                     : row.total_deaths && row.total_cases
@@ -776,8 +774,8 @@ export class CovidDataExplorer extends React.Component<{
 
         if (params.testsPerCaseMetric && params.dailyFreq) {
             if (params.smoothing) {
-                this.addNewCasesSmoothed()
-                this.initColumnAndGetId(
+                this.addNewCasesSmoothedColumn()
+                this.initColumn(
                     this.metricName,
                     row => {
                         if (
@@ -793,7 +791,7 @@ export class CovidDataExplorer extends React.Component<{
                     true
                 )
             } else {
-                this.initColumnAndGetId(
+                this.initColumn(
                     this.metricName,
                     row => {
                         if (row.new_tests === undefined || row.new_cases)
@@ -806,7 +804,7 @@ export class CovidDataExplorer extends React.Component<{
             }
         }
         if (params.testsPerCaseMetric && params.totalFreq)
-            this.initColumnAndGetId(this.metricName, row => {
+            this.initColumn(this.metricName, row => {
                 if (row.total_tests === undefined || !row.total_cases)
                     return undefined
                 const tpc = row.total_tests / row.total_cases
@@ -814,8 +812,8 @@ export class CovidDataExplorer extends React.Component<{
             })
 
         if (params.positiveTestRate && params.dailyFreq) {
-            this.addNewCasesSmoothed()
-            this.initColumnAndGetId(
+            this.addNewCasesSmoothedColumn()
+            this.initColumn(
                 this.metricName,
                 row => {
                     const testCount =
@@ -837,74 +835,101 @@ export class CovidDataExplorer extends React.Component<{
             )
         }
         if (params.positiveTestRate && params.totalFreq)
-            this.initColumnAndGetId(this.metricName, row => {
+            this.initColumn(this.metricName, row => {
                 if (row.total_cases === undefined || !row.total_tests)
                     return undefined
                 const rate = row.total_cases / row.total_tests
                 return rate >= 0 && rate <= 1 ? rate : undefined
             })
-    }
 
-    private _smoothedAdded = false
-    private addNewCasesSmoothed() {
-        if (this._smoothedAdded) return undefined
-        const newCasesSmoothed = computeCovidColumn(
-            this.props.data,
-            row =>
-                row.new_tests_smoothed !== undefined && row.new_cases
-                    ? row.new_cases
-                    : undefined,
-            1,
-            this.constrainedParams.smoothing
-        )
-        newCasesSmoothed.rows.forEach((row, index) => {
-            ;(row as any).new_cases_smoothed = newCasesSmoothed.values[index]
-        })
-
-        this._smoothedAdded = true
-        return undefined
-    }
-
-    @computed get daysSinceVariableId() {
-        const params = this.constrainedParams
-        let sourceId = this.currentYVarId
-        // If we are using the cases metric, we use that for days since, else we use a formula
-        // that uses the deaths metric.
-        if (!params.casesMetric) {
-            sourceId = params.dailyFreq
-                ? this.initColumnAndGetId(
-                      "deaths",
-                      row => row.new_deaths,
-                      true,
-                      params.perCapita ? 1000000 : 1
-                  )
-                : this.initColumnAndGetId(
-                      "deaths",
-                      row => row.total_deaths,
-                      false,
-                      params.perCapita ? 1000000 : 1
-                  )
-        }
-
-        const idParts = [456, sourceId]
-        const id = parseInt(idParts.join(""))
-        if (!this.owidVariableSet.variables[id]) {
-            this.owidVariableSet.variables[id] = daysSinceVariable(
-                this.owidVariableSet.variables[sourceId],
-                this.daysSinceOption.threshold,
-                this.daysSinceOption.title
+        if (this.chartType === "ScatterPlot") {
+            const option = this.daysSinceOption
+            this.addDaysSinceColumn(
+                option.sourceColumn,
+                option.threshold,
+                option.title
             )
         }
-        return id
     }
+
+    private addDaysSinceColumn(
+        sourceColumnName: string,
+        threshold: number,
+        title: string
+    ) {
+        let currentCountry: number
+        let firstCountryDay: number
+        let sourceColumn: string
+
+        const spec = {
+            id: 1,
+            slug: sourceColumnName
+        }
+
+        this.chart.table.addColumn(spec, row => {
+            if (row.entityName !== currentCountry) {
+                const sourceValue = row[sourceColumn]
+                if (sourceValue < threshold) return undefined
+                currentCountry = row.entityName
+                firstCountryDay = row.day
+            }
+            return row.day - firstCountryDay
+        })
+    }
+
+    private addNewCasesSmoothedColumn() {
+        const smoothing = this.constrainedParams.smoothing
+
+        const spec = {
+            id: 1,
+            slug: `new_cases_smoothed`
+        }
+
+        this.chart.table.addRollingAverageColumn(
+            spec,
+            smoothing,
+            row => row.new_cases,
+            "day",
+            "entityName"
+        )
+    }
+
+    // @computed get daysSinceVariableId() {
+    //     const params = this.constrainedParams
+    //     let sourceId = this.currentYVarId
+    //     // If we are using the cases metric, we use that for days since, else we use a formula
+    //     // that uses the deaths metric.
+    //     if (!params.casesMetric) {
+    //         sourceId = params.dailyFreq
+    //             ? this.initColumnAndGetId(
+    //                   "deaths",
+    //                   row => row.new_deaths,
+    //                   true,
+    //                   params.perCapita ? 1000000 : 1
+    //               )
+    //             : this.initColumnAndGetId(
+    //                   "deaths",
+    //                   row => row.total_deaths,
+    //                   false,
+    //                   params.perCapita ? 1000000 : 1
+    //               )
+    //     }
+
+    //     const id = this.daysSinceVariableId
+    //     if (!this.owidVariableSet.variables[id]) {
+    //         this.owidVariableSet.variables[id] = daysSinceVariable(
+    //             this.owidVariableSet.variables[sourceId],
+    //             this.daysSinceOption.threshold,
+    //             this.daysSinceOption.title
+    //         )
+    //     }
+    // }
 
     @computed get daysSinceOption() {
         const params = this.constrainedParams
         const kind = params.casesMetric ? "cases" : "deaths"
         return getTrajectoryOptions(kind, params.dailyFreq, params.perCapita)
     }
-
-    private continentsVariableId = 123
 
     updateChart() {
         // Generating the new chart may take a second so render the Data Explorer controls immediately then
@@ -921,7 +946,6 @@ export class CovidDataExplorer extends React.Component<{
 
         const spec = new Map()
         spec.set("continent", variablePartials.continents)
-        spec.set("cases_total", variablePartials.continents)
         this.chart.table.addRows(this.props.data)
         this.chart.table.detectSpec()
         // casesMetric=true&totalFreq=true&s&country=~ISR
@@ -933,7 +957,7 @@ export class CovidDataExplorer extends React.Component<{
         // manually update the chart when the chart builderselections change.
         // todo: cleanup
         this.initTable()
-        this.initColumns()
+        this.initRequestedColumns()
         const chartProps = this.chart.props
         chartProps.title = this.chartTitle
         chartProps.subtitle = this.subtitle
@@ -1004,7 +1028,8 @@ export class CovidDataExplorer extends React.Component<{
 
     componentDidMount() {
         const win = window as any
-        win.covidDataExplorer = this
+        win.covidDataExplorer = this // For debugging
+        win.table = this.chart.table // For debugging
 
         this.bindToWindow()
 
@@ -1122,7 +1147,7 @@ export class CovidDataExplorer extends React.Component<{
             },
             {
                 property: "color",
-                variableId: this.continentsVariableId,
+                variableId: 123,
                 display: {}
             }
         ]
@@ -1131,7 +1156,7 @@ export class CovidDataExplorer extends React.Component<{
     @computed private get xVariableId() {
         return this.chartType === "LineChart"
             ? undefined
-            : this.daysSinceVariableId
+            : this.daysSinceOption.id
     }
 
     get customCategoryColors() {
