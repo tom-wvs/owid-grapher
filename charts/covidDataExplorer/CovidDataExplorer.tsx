@@ -599,14 +599,13 @@ export class CovidDataExplorer extends React.Component<{
                 )
                 this.availableCountriesCache.set(key, new Set(data))
             }
-        } else {
+        } else if (this.yColumn) {
             key = this.currentYVarId + ""
             if (!this.availableCountriesCache.get(key)) {
-                this.availableCountriesCache.set(
-                    key,
-                    new Set(this.yColumn ? this.yColumn.entityNames : [])
-                )
+                this.availableCountriesCache.set(key, this.yColumn.entitiesUniq)
             }
+        } else {
+            return new Set()
         }
         return this.availableCountriesCache.get(key)!
     }
