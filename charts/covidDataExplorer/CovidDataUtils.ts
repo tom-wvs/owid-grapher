@@ -1,6 +1,5 @@
 import {
     dateDiffInDays,
-    computeRollingAverage,
     flatten,
     cloneDeep,
     map,
@@ -19,7 +18,6 @@ import {
     CountryOption,
     CovidGrapherRow
 } from "./CovidTypes"
-import { OwidVariable } from "charts/owidData/OwidVariable"
 import { variablePartials } from "./CovidVariablePartials"
 import { csv } from "d3-fetch"
 import { ColumnSpec } from "charts/owidData/OwidTable"

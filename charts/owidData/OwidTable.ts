@@ -194,8 +194,12 @@ abstract class AbstractTable<ROW_TYPE> {
         this.rows = rows
         this.spec = specs ? specs : this.detectSpec()
         Array.from(this.spec.keys()).forEach(slug => {
-            this.columns.set(slug, new StringColumn(this, this.spec.get(slug)!))
+            this.setSpecAndInitColumn(slug, this.spec.get(slug)!)
         })
+    }
+
+    setSpecAndInitColumn(slug: string, spec: ColumnSpec) {
+        this.columns.set(slug, new StringColumn(this, spec))
     }
 
     addColumn(spec: ColumnSpec, rowFn: RowBuilder) {

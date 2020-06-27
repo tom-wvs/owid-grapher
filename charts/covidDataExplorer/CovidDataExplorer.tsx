@@ -58,7 +58,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { ColorScheme, ColorSchemes } from "charts/ColorSchemes"
 import { variablePartials } from "./CovidVariablePartials"
-import { RowBuilder } from "charts/owidData/OwidTable"
+import { RowBuilder, ColumnSpec } from "charts/owidData/OwidTable"
 
 const abSeed = Math.random()
 
@@ -590,12 +590,12 @@ export class CovidDataExplorer extends React.Component<{
 
     @computed get availableCountriesForMetric() {
         let key: string
-        if (this.xVariableId) {
+        if (this.xVariableId && this.xColumn) {
             key = this.xVariableId + "-" + this.currentYVarId
             if (!this.availableCountriesCache.get(key)) {
                 const data = intersection(
-                    this.xColumn.entityNames,
-                    this.yColumn.entityNames
+                    Array.from(this.xColumn.entitiesUniq.values()),
+                    Array.from(this.yColumn.entitiesUniq.values())
                 )
                 this.availableCountriesCache.set(key, new Set(data))
             }
@@ -843,10 +843,11 @@ export class CovidDataExplorer extends React.Component<{
                 return rate >= 0 && rate <= 1 ? rate : undefined
             })
 
-        if (this.chartType === "ScatterPlot") {
+        if (params.aligned) {
             const option = this.daysSinceOption
             this.addDaysSinceColumn(
                 option.sourceColumn,
+                option.id,
                 option.threshold,
                 option.title
             )
@@ -855,18 +856,20 @@ export class CovidDataExplorer extends React.Component<{
 
     private addDaysSinceColumn(
         sourceColumnName: string,
+        id: number,
         threshold: number,
         title: string
     ) {
+        const spec: ColumnSpec = {
+            ...variablePartials.days_since,
+            name: title,
+            owidVariableId: id,
+            slug: `daysSince${sourceColumnName}Hit${threshold}`
+        }
+
         let currentCountry: number
         let firstCountryDay: number
         let sourceColumn: string
-
-        const spec = {
-            id: 1,
-            slug: sourceColumnName
-        }
-
         this.chart.table.addColumn(spec, row => {
             if (row.entityName !== currentCountry) {
                 const sourceValue = row[sourceColumn]
@@ -941,12 +944,20 @@ export class CovidDataExplorer extends React.Component<{
         }, 1)
     }
 
+    private addContinentsColumn() {
+        const spec = {
+            ...variablePartials.continents,
+            slug: "continent",
+            owidVariableId: 123
+        }
+        this.chart.table.setSpecAndInitColumn("continent", spec)
+    }
+
     private initTable() {
         if (this.chart.table.rows.length) return
         // We manually call this first, before doing the selection thing, because we cannot select data that is not there.
 
-        const spec = new Map()
-        spec.set("continent", variablePartials.continents)
+        this.addContinentsColumn()
         this.chart.table.addRows(this.props.data)
         this.chart.table.detectSpec()
         // casesMetric=true&totalFreq=true&s&country=~ISR
