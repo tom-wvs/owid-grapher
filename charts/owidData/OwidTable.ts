@@ -404,7 +404,9 @@ export class OwidTable extends AbstractTable<OwidRow> {
         return columnSlug + "-annotations"
     }
 
-    static columnSpecFromVariable(variable: OwidVariable): ColumnSpec {
+    private static columnSpecFromLegacyVariable(
+        variable: OwidVariable
+    ): ColumnSpec {
         const slug = variable.id + "-" + slugify(variable.name) // todo: remove?
         const {
             unit,
@@ -455,7 +457,7 @@ export class OwidTable extends AbstractTable<OwidRow> {
                 id => entityMetaById[id].code
             )
 
-            const columnSpec = this.columnSpecFromVariable(variable)
+            const columnSpec = this.columnSpecFromLegacyVariable(variable)
             const columnSlug = columnSpec.slug
             columnSpec.isDailyMeasurement
                 ? columnSpecs.set("day", { slug: "day" })

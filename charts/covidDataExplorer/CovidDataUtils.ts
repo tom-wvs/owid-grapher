@@ -1,7 +1,6 @@
 import {
     dateDiffInDays,
     flatten,
-    cloneDeep,
     map,
     groupBy,
     parseFloatOrUndefined,
@@ -18,7 +17,7 @@ import {
     CountryOption,
     CovidGrapherRow
 } from "./CovidTypes"
-import { variablePartials } from "./CovidVariablePartials"
+import { columnSpecs } from "./CovidColumnSpecs"
 import { csv } from "d3-fetch"
 import { ColumnSpec, OwidTable } from "charts/owidData/OwidTable"
 
@@ -55,11 +54,8 @@ const dateToYear = (dateString: string): number =>
         moment.utc(EPOCH_DATE).toDate()
     )
 
-declare type RowAccessor = (row: ParsedCovidCsvRow) => number | undefined
-
 // export const covidDataPath = "https://covid.ourworldindata.org/data/owid-covid-data.csv"
 export const covidDataPath = "http://localhost:3099/sandbox/testData.csv"
-
 export const covidLastUpdatedPath =
     "https://covid.ourworldindata.org/data/owid-covid-data-last-updated-timestamp.txt"
 
@@ -266,47 +262,6 @@ export const getColumnSlug = (
         .join("-")
 }
 
-export const buildColumnSpec = (
-    newId: number,
-    name: MetricKind,
-    perCapita: number,
-    daily?: boolean,
-    rollingAverage?: number,
-    updatedTime?: string
-): ColumnSpec => {
-    const spec = cloneDeep(variablePartials[name]) as ColumnSpec
-    spec.slug = getColumnSlug(name, perCapita, daily, rollingAverage)
-    spec.owidVariableId = newId
-    spec.source!.name = `${spec.source!.name}${updatedTime}`
-
-    const messages: { [index: number]: string } = {
-        1: "",
-        1000: " per thousand people",
-        1000000: " per million people"
-    }
-
-    spec.display!.name = `${daily ? "Daily " : "Cumulative "}${
-        spec.display!.name
-    }${messages[perCapita]}`
-
-    // Show decimal places for rolling average & per capita variables
-    if (perCapita > 1) {
-        spec.display!.numDecimalPlaces = 2
-    } else if (
-        name === "positive_test_rate" ||
-        name === "case_fatality_rate" ||
-        (rollingAverage && rollingAverage > 1)
-    ) {
-        spec.display!.numDecimalPlaces = 1
-    } else {
-        spec.display!.numDecimalPlaces = 0
-    }
-
-    // variable.display!.entityAnnotationsMap = buildEntityAnnotations(rows, name)
-
-    return spec
-}
-
 export const getTrajectoryOptions = (
     metric: MetricKind,
     daily: boolean,
@@ -318,7 +273,7 @@ export const getTrajectoryOptions = (
         ...trajectoryOptions[key][
             perCapita ? "perCapita" : daily ? "daily" : "total"
         ],
-        special: getColumnSlug(metric, perCapita ? 1e6 : 1, daily, smoothing)
+        sourceSlug: getColumnSlug(metric, perCapita ? 1e6 : 1, daily, smoothing)
     }
     return option
 }
@@ -332,7 +287,7 @@ export const addDaysSinceColumn = (
 ) => {
     const slug = `daysSince${sourceColumnName}Hit${threshold}`
     const spec: ColumnSpec = {
-        ...variablePartials.days_since,
+        ...columnSpecs.days_since,
         name: title,
         owidVariableId: id,
         slug

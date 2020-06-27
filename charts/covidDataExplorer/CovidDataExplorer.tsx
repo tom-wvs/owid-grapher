@@ -46,7 +46,6 @@ import {
     covidLastUpdatedPath,
     getTrajectoryOptions,
     getLeastUsedColor,
-    buildColumnSpec,
     addDaysSinceColumn
 } from "./CovidDataUtils"
 import { BAKED_BASE_URL } from "settings"
@@ -58,8 +57,8 @@ import {
 } from "./CovidConstants"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { ColorScheme, ColorSchemes } from "charts/ColorSchemes"
-import { variablePartials } from "./CovidVariablePartials"
-import { RowBuilder, ColumnSpec } from "charts/owidData/OwidTable"
+import { columnSpecs, buildColumnSpec } from "./CovidColumnSpecs"
+import { RowBuilder } from "charts/owidData/OwidTable"
 
 const abSeed = Math.random()
 
@@ -848,7 +847,7 @@ export class CovidDataExplorer extends React.Component<{
             const option = this.daysSinceOption
             addDaysSinceColumn(
                 this.chart.table,
-                option.special,
+                option.sourceSlug,
                 option.id,
                 option.threshold,
                 option.title
@@ -926,12 +925,10 @@ export class CovidDataExplorer extends React.Component<{
     }
 
     private addContinentsColumn() {
-        const spec = {
-            ...variablePartials.continents,
-            slug: "continent",
-            owidVariableId: 123
-        }
-        this.chart.table.setSpecAndInitColumn("continent", spec)
+        this.chart.table.setSpecAndInitColumn(
+            "continent",
+            columnSpecs.continents
+        )
     }
 
     private initTable() {
