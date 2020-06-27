@@ -24,6 +24,8 @@ declare type columnSlug = string // let's be very restrictive on valid column na
 
 interface Row {
     [columnName: string]: any
+    _selected?: boolean
+    _filtered?: boolean
 }
 
 // Todo: replace with someone else's library
@@ -66,8 +68,6 @@ interface OwidRow extends Row {
     year?: year
     day?: int
     date?: string
-    _selected?: boolean
-    _filtered?: boolean
     _color?: color
     annotation?: string
     // _x: boolean
@@ -171,9 +171,7 @@ export abstract class AbstractColumn {
 
     @computed private get rows() {
         const slug = this.spec.slug
-        return this.table.rows.filter(
-            row => row[slug] !== undefined && !row._filtered
-        )
+        return this.table.unfilteredRows.filter(row => row[slug] !== undefined)
     }
 
     @computed get values() {
@@ -191,7 +189,7 @@ class EntityColumn extends AbstractColumn {}
 
 declare type TableSpec = Map<columnSlug, ColumnSpec>
 
-abstract class AbstractTable<ROW_TYPE> {
+abstract class AbstractTable<ROW_TYPE extends Row> {
     rows: ROW_TYPE[]
     @observable spec: TableSpec
     @observable protected columns: Map<columnSlug, AbstractColumn> = new Map()
@@ -269,6 +267,21 @@ abstract class AbstractTable<ROW_TYPE> {
     @computed get columnNames() {
         return new Set(this.spec.keys())
     }
+
+    @observable protected lastFilterTime = 0
+    @computed get unfilteredRows() {
+        return this.lastFilterTime
+            ? this.rows.filter(row => !row._filtered)
+            : this.rows
+    }
+
+    @computed get filteredRows() {
+        return this.lastFilterTime ? this.rows.filter(row => row._filtered) : []
+    }
+
+    protected clearFilters() {
+        this.filteredRows.forEach(row => (row._filtered = false))
+    }
 }
 
 export class OwidTable extends AbstractTable<OwidRow> {
@@ -280,17 +293,12 @@ export class OwidTable extends AbstractTable<OwidRow> {
         return map
     }
 
-    private _filterCount = 0
-    private _minPopulationSize?: number
-    private _selectedCountryNames?: Set<string>
-    @action.bound applyFilters(
+    @action.bound applyMinPopSizeFilter(
         selectedCountryNames: Set<string>,
         minPopulationSize?: int
     ) {
-        if (minPopulationSize === undefined && !this._filterCount) return this
-        this._minPopulationSize = minPopulationSize
-        this._selectedCountryNames = selectedCountryNames
-        this._filterCount = 0
+        this.lastFilterTime = Date.now()
+        if (minPopulationSize === undefined) return this.clearFilters()
         this.rows.forEach(row => {
             const name = row.entityName
             const filter = populationMap[name]
@@ -298,7 +306,6 @@ export class OwidTable extends AbstractTable<OwidRow> {
                   !selectedCountryNames.has(name)
                 : false
             row._filtered = filter
-            this._filterCount++
         })
         return this
     }

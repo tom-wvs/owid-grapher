@@ -948,6 +948,7 @@ export class CovidDataExplorer extends React.Component<{
         // todo: cleanup
         this.initTable()
         this.initRequestedColumns()
+        this.chart.applyFilters()
         const chartProps = this.chart.props
         chartProps.title = this.chartTitle
         chartProps.subtitle = this.subtitle

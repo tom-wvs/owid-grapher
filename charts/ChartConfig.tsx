@@ -341,7 +341,11 @@ export class ChartConfig {
 
     @action.bound receiveData(json: OwidVariablesAndEntityKey) {
         this.table = OwidTable.fromLegacy(json)
-        this.table.applyFilters(
+        this.applyFilters()
+    }
+
+    applyFilters() {
+        this.table.applyMinPopSizeFilter(
             this.selectedCountryNames,
             this.props.minPopulationFilter
         )
@@ -482,6 +486,13 @@ export class ChartConfig {
             reaction(() => this.variableIds, this.downloadData, {
                 fireImmediately: true
             })
+        )
+
+        this.disposers.push(
+            reaction(
+                () => this.props.minPopulationFilter,
+                () => this.applyFilters()
+            )
         )
 
         this.data = new ChartData(this)
