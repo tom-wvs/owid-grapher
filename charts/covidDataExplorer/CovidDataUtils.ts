@@ -27,7 +27,7 @@ const keepStrings = new Set(
 )
 
 const ents = new Set()
-export const parseCovidRow = (row: ParsedCovidCsvRow) => {
+export const parseCovidRow = (row: ParsedCovidCsvRow): CovidGrapherRow => {
     const newRow: Partial<CovidGrapherRow> = row
     Object.keys(row).forEach(key => {
         const isNumeric = !keepStrings.has(key)
@@ -44,7 +44,7 @@ export const parseCovidRow = (row: ParsedCovidCsvRow) => {
     ents.add(row.location)
     newRow.entityId = ents.size - 1
 
-    return row
+    return row as CovidGrapherRow
 }
 
 const EPOCH_DATE = "2020-01-21"
@@ -64,11 +64,13 @@ export const covidLastUpdatedPath =
     "https://covid.ourworldindata.org/data/owid-covid-data-last-updated-timestamp.txt"
 
 export const fetchAndParseData = async (): Promise<CovidGrapherRow[]> => {
-    const rawData = await csv(covidDataPath)
+    const rawData = (await csv(covidDataPath)) as any
+
     const filtered = rawData
         .map(parseCovidRow)
         .filter(
-            row => row.location !== "World" && row.location !== "International"
+            (row: CovidGrapherRow) =>
+                row.location !== "World" && row.location !== "International"
         )
 
     const continentRows = generateContinentRows(filtered)
@@ -244,16 +246,13 @@ India: Note that on June 17 earlier deaths were added to the total.`
     return undefined
 }
 
-export const buildColumnSpec = (
-    newId: number,
+export const getColumnSlug = (
     name: MetricKind,
     perCapita: number,
     daily?: boolean,
-    rollingAverage?: number,
-    updatedTime?: string
-): ColumnSpec => {
-    const spec = cloneDeep(variablePartials[name]) as ColumnSpec
-    spec.slug = [
+    rollingAverage?: number
+) => {
+    return [
         name,
         perCapita === 1e3
             ? "perThousand"
@@ -265,6 +264,18 @@ export const buildColumnSpec = (
     ]
         .filter(i => i)
         .join("-")
+}
+
+export const buildColumnSpec = (
+    newId: number,
+    name: MetricKind,
+    perCapita: number,
+    daily?: boolean,
+    rollingAverage?: number,
+    updatedTime?: string
+): ColumnSpec => {
+    const spec = cloneDeep(variablePartials[name]) as ColumnSpec
+    spec.slug = getColumnSlug(name, perCapita, daily, rollingAverage)
     spec.owidVariableId = newId
     spec.source!.name = `${spec.source!.name}${updatedTime}`
 
@@ -299,12 +310,17 @@ export const buildColumnSpec = (
 export const getTrajectoryOptions = (
     metric: MetricKind,
     daily: boolean,
-    perCapita: boolean
+    perCapita: boolean,
+    smoothing?: number
 ) => {
     const key = metric === "cases" ? metric : "deaths"
-    return trajectoryOptions[key][
-        perCapita ? "perCapita" : daily ? "daily" : "total"
-    ]
+    const option = {
+        ...trajectoryOptions[key][
+            perCapita ? "perCapita" : daily ? "daily" : "total"
+        ],
+        special: getColumnSlug(metric, perCapita ? 1e6 : 1, daily, smoothing)
+    }
+    return option
 }
 
 const trajectoryOptions = {

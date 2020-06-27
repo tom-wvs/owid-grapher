@@ -846,7 +846,7 @@ export class CovidDataExplorer extends React.Component<{
         if (params.aligned) {
             const option = this.daysSinceOption
             this.addDaysSinceColumn(
-                option.sourceColumn,
+                option.special,
                 option.id,
                 option.threshold,
                 option.title
@@ -932,7 +932,13 @@ export class CovidDataExplorer extends React.Component<{
     @computed get daysSinceOption() {
         const params = this.constrainedParams
         const kind = params.casesMetric ? "cases" : "deaths"
-        return getTrajectoryOptions(kind, params.dailyFreq, params.perCapita)
+        const options = getTrajectoryOptions(
+            kind,
+            params.dailyFreq,
+            params.perCapita,
+            params.smoothing
+        )
+        return options
     }
 
     updateChart() {
