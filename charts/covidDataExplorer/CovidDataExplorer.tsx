@@ -683,10 +683,12 @@ export class CovidDataExplorer extends React.Component<{
         if (perCapita > 1) {
             const originalRowFn = rowFn
             rowFn = row => {
+                const value = originalRowFn(row)
+                if (value === undefined) return undefined
                 const pop = row.population
                 if (!pop)
                     throw new Error(`Missing population for ${row.location}`)
-                return perCapita * (originalRowFn(row) / pop)
+                return perCapita * (value / pop)
             }
         }
 
