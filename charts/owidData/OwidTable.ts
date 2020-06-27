@@ -465,6 +465,17 @@ export class OwidTable extends AbstractTable<OwidRow> {
             slug: "entityCode"
         })
 
+        // todo:
+        /*
+"selectedData": [
+    {
+      "entityId": 1,
+      "index": 0,
+      "color": "#333333"
+    },
+
+        */
+
         for (const key in json.variables) {
             const variable = new OwidVariable(json.variables[key])
 

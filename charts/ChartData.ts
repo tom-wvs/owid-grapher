@@ -232,10 +232,10 @@ export class ChartData {
 
     // Make a unique string key for an entity on a variable
     makeEntityDimensionKey(
-        entity: string,
+        entityName: string,
         dimensionIndex: number
     ): EntityDimensionKey {
-        return `${entity}_${dimensionIndex}`
+        return `${entityName}_${dimensionIndex}`
     }
 
     @computed get dimensionsByField(): {

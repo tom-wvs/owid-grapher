@@ -227,9 +227,9 @@ export class ScatterTransform extends ChartTransform {
             for (let i = 0; i < dimension.years.length; i++) {
                 const year = dimension.years[i]
                 const value = dimension.values[i]
-                const entity = dimension.entityNames[i]
+                const entityName = dimension.entityNames[i]
 
-                if (!validEntityLookup[entity]) continue
+                if (!validEntityLookup[entityName]) continue
 
                 if (
                     (dimension.property === "x" ||
@@ -238,10 +238,10 @@ export class ScatterTransform extends ChartTransform {
                 )
                     continue
 
-                let byEntity = initialDataByEntity.get(entity)
+                let byEntity = initialDataByEntity.get(entityName)
                 if (!byEntity) {
                     byEntity = { years: [], values: [] }
-                    initialDataByEntity.set(entity, byEntity)
+                    initialDataByEntity.set(entityName, byEntity)
                 }
 
                 byEntity.years.push(year)
@@ -250,11 +250,11 @@ export class ScatterTransform extends ChartTransform {
 
             // Now go through each entity + timeline year and use a binary search to find the closest
             // matching data year within tolerance
-            initialDataByEntity.forEach((byEntity, entity) => {
-                let dataByYear = dataByEntityAndYear.get(entity)
+            initialDataByEntity.forEach((byEntity, entityName) => {
+                let dataByYear = dataByEntityAndYear.get(entityName)
                 if (dataByYear === undefined) {
                     dataByYear = new Map()
-                    dataByEntityAndYear.set(entity, dataByYear)
+                    dataByEntityAndYear.set(entityName, dataByYear)
                 }
 
                 for (const outputYear of yearsToCalculate) {
