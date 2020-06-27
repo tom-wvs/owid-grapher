@@ -61,13 +61,9 @@ export const covidLastUpdatedPath =
 
 export const fetchAndParseData = async (): Promise<CovidGrapherRow[]> => {
     const rawData = (await csv(covidDataPath)) as any
-
     const filtered = rawData
         .map(parseCovidRow)
-        .filter(
-            (row: CovidGrapherRow) =>
-                row.location !== "World" && row.location !== "International"
-        )
+        .filter((row: CovidGrapherRow) => row.location !== "International")
 
     const continentRows = generateContinentRows(filtered)
     const euRows = calculateRowsForGroup(getEuRows(filtered), "European Union")
@@ -107,32 +103,37 @@ const euCountries = new Set([
     "Sweden"
 ])
 
-export const calculateRowsForGroup = (
+const calculateRowsForGroup = (
     group: ParsedCovidCsvRow[],
     groupName: string
 ) => {
-    const groupRows = new Map<string, ParsedCovidCsvRow>()
+    const rowsByDay = new Map<string, CovidGrapherRow>()
     const rows = sortBy(group, row => moment(row.date).unix())
     rows.forEach(row => {
         const day = row.date
-        if (!groupRows.has(day)) {
+        if (!rowsByDay.has(day)) {
             const newRow: any = {}
             Object.keys(row).forEach(key => (newRow[key] = undefined))
-            groupRows.set(day, {
+            ents.add(groupName)
+            rowsByDay.set(day, {
                 location: groupName,
                 iso_code: groupName.replace(" ", ""),
                 date: day,
+                day: dateToYear(day),
                 new_cases: 0,
+                entityName: groupName,
+                entityCode: groupName.replace(" ", ""),
+                entityId: ents.size - 1,
                 new_deaths: 0,
                 population: 0
-            } as ParsedCovidCsvRow)
+            } as CovidGrapherRow)
         }
-        const newRow = groupRows.get(day)!
+        const newRow = rowsByDay.get(day)!
         newRow.population += row.population
         newRow.new_cases += row.new_cases || 0
         newRow.new_deaths += row.new_deaths || 0
     })
-    const newRows = Array.from(groupRows.values())
+    const newRows = Array.from(rowsByDay.values())
     let total_cases = 0
     let total_deaths = 0
     let maxPopulation = 0

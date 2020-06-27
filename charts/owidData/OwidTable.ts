@@ -320,6 +320,17 @@ export class OwidTable extends AbstractTable<OwidRow> {
         return this
     }
 
+    // for debugging
+    rowsWith(query: string) {
+        const cols = Array.from(this.columnNames)
+        return this.rows.filter(row =>
+            cols
+                .map(cName => cName + " " + (row[cName] ?? ""))
+                .join(" ")
+                .includes(query)
+        )
+    }
+
     // todo: have a debug param and spit out filtered, etc?
     toDelimited(delimiter = ",", rowLimit?: number) {
         const cols = Array.from(this.columnNames)

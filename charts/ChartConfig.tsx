@@ -341,7 +341,7 @@ export class ChartConfig {
 
     @action.bound receiveData(json: OwidVariablesAndEntityKey) {
         this.table = OwidTable.fromLegacy(json)
-        this.applyFilters()
+        if (this.props.minPopulationFilter) this.applyFilters()
     }
 
     applyFilters() {
