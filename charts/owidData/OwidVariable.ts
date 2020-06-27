@@ -1,5 +1,7 @@
+// todo: remove file
+
 import { extend } from "../Util"
-import { observable, computed } from "mobx"
+import { observable } from "mobx"
 import { OwidSource } from "./OwidSource"
 
 export class OwidVariableDisplaySettings {
@@ -17,35 +19,44 @@ export class OwidVariableDisplaySettings {
 }
 
 export class OwidVariable {
-    @observable.ref id!: number
-    @observable.ref name!: string
-    @observable.ref description!: string
-    @observable.ref unit!: string
-    @observable.ref shortUnit!: string
-    @observable.ref datasetName!: string
-    @observable.ref datasetId!: string
-
-    @observable.ref coverage?: string
-
-    @observable
+    id!: number
+    name!: string
+    description!: string
+    unit!: string
+    shortUnit!: string
+    datasetName!: string
+    datasetId!: string
+    coverage?: string
     display: OwidVariableDisplaySettings = new OwidVariableDisplaySettings()
-
-    @observable.struct source!: OwidSource
-    @observable.ref years: number[] = []
-    @observable.ref entityNames: string[] = []
-    @observable.ref entityCodes: string[] = []
-    @observable.ref entities: number[] = []
-    @observable.ref values: (string | number)[] = []
+    source!: OwidSource
+    years: number[] = []
+    entities: number[] = []
+    values: (string | number)[] = []
 
     constructor(json: any) {
-        for (const key in this) {
-            if (key in json) {
-                if (key === "display") {
-                    extend(this.display, json.display)
-                } else {
-                    this[key] = json[key]
-                }
+        for (const key in json) {
+            if (key === "display") {
+                extend(this.display, json.display)
+            } else {
+                ;(this as any)[key] = json[key]
             }
         }
     }
+}
+
+export interface EntityMeta {
+    id: number
+    name: string
+    code: string
+}
+
+declare interface OwidEntityKey {
+    [id: string]: EntityMeta
+}
+
+export interface OwidVariablesAndEntityKey {
+    variables: {
+        [id: string]: OwidVariable
+    }
+    entityKey: OwidEntityKey
 }

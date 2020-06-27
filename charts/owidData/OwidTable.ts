@@ -1,5 +1,9 @@
-import { OwidVariablesAndEntityKey, EntityMeta } from "./OwidVariableSet"
-import { OwidVariable, OwidVariableDisplaySettings } from "./OwidVariable"
+import {
+    OwidVariable,
+    OwidVariableDisplaySettings,
+    EntityMeta,
+    OwidVariablesAndEntityKey
+} from "./OwidVariable"
 import {
     slugify,
     groupBy,
