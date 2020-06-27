@@ -590,7 +590,7 @@ export class CovidDataExplorer extends React.Component<{
 
     @computed get availableCountriesForMetric() {
         let key: string
-        if (this.xVariableId && this.xColumn) {
+        if (this.xVariableId && this.xColumn && this.yColumn) {
             key = this.xVariableId + "-" + this.currentYVarId
             if (!this.availableCountriesCache.get(key)) {
                 const data = intersection(
@@ -868,16 +868,16 @@ export class CovidDataExplorer extends React.Component<{
         }
 
         let currentCountry: number
-        let firstCountryDay: number
-        let sourceColumn: string
+        let countryExceededThresholdOnDay: number
         this.chart.table.addColumn(spec, row => {
             if (row.entityName !== currentCountry) {
-                const sourceValue = row[sourceColumn]
-                if (sourceValue < threshold) return undefined
+                const sourceValue = row[sourceColumnName]
+                if (sourceValue === undefined || sourceValue < threshold)
+                    return undefined
                 currentCountry = row.entityName
-                firstCountryDay = row.day
+                countryExceededThresholdOnDay = row.day
             }
-            return row.day - firstCountryDay
+            return row.day - countryExceededThresholdOnDay
         })
     }
 
