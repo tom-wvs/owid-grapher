@@ -705,7 +705,7 @@ export class CovidDataExplorer extends React.Component<{
             params.perCapita ? this.perCapitaDivisor : 1,
             params.dailyFreq,
             params.smoothing
-        ).owidVariableId
+        ).owidVariableId!
     }
 
     private get metricName(): MetricKind {
