@@ -25,7 +25,7 @@ export class SourcesFooter {
     }
 
     @computed get sourcesText(): string {
-        const sourcesLine = this.props.chart.data.sourcesLine
+        const sourcesLine = this.props.chart.sourcesLine
         return sourcesLine ? `Source: ${sourcesLine}` : ""
     }
 

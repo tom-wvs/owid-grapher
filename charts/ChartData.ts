@@ -77,26 +77,6 @@ export class ChartData {
         )
     }
 
-    @computed private get defaultTitle(): string {
-        if (this.chart.isScatter)
-            return this.axisDimensions.map(d => d.displayName).join(" vs. ")
-        else if (
-            this.primaryDimensions.length > 1 &&
-            uniq(map(this.primaryDimensions, d => d.column.datasetName))
-                .length === 1
-        )
-            return this.primaryDimensions[0].column.datasetName!
-        else if (this.primaryDimensions.length === 2)
-            return this.primaryDimensions.map(d => d.displayName).join(" and ")
-        else return this.primaryDimensions.map(d => d.displayName).join(", ")
-    }
-
-    @computed get title(): string {
-        return this.chart.props.title !== undefined
-            ? this.chart.props.title
-            : this.defaultTitle
-    }
-
     // XXX refactor into the transforms
     @computed get minYear(): number {
         const { chart } = this
@@ -126,7 +106,7 @@ export class ChartData {
 
     @computed get currentTitle(): string {
         const { chart } = this
-        let text = this.title
+        let text = chart.title
 
         if (
             chart.primaryTab === "chart" &&
@@ -178,44 +158,10 @@ export class ChartData {
         return text.trim()
     }
 
-    @computed private get defaultSlug(): string {
-        return slugify(this.title)
-    }
-
-    @computed get slug(): string {
-        return defaultTo(this.chart.props.slug, this.defaultSlug)
-    }
-
     @computed get originUrl(): string {
         let url = this.chart.props.originUrl || ""
         if (!url.startsWith("http")) url = "https://" + url
         return url
-    }
-
-    @computed private get defaultSourcesLine(): string {
-        let sourceNames = this.sourcesWithDimension.map(
-            source => source.source.name
-        )
-
-        // Shorten automatic source names for certain major sources
-        sourceNames = sourceNames.map(sourceName => {
-            for (const majorSource of [
-                "World Bank – WDI",
-                "World Bank",
-                "ILOSTAT"
-            ]) {
-                if (sourceName.startsWith(majorSource)) return majorSource
-            }
-            return sourceName
-        })
-
-        return uniq(sourceNames).join(", ")
-    }
-
-    @computed get sourcesLine(): string {
-        return this.chart.props.sourceDesc !== undefined
-            ? this.chart.props.sourceDesc
-            : this.defaultSourcesLine
     }
 
     @computed get isSingleEntity(): boolean {

@@ -38,7 +38,7 @@ export class EditorTextTab extends React.Component<{ editor: ChartEditor }> {
                     <BindAutoString
                         field="title"
                         store={chart.props}
-                        auto={chart.data.title}
+                        auto={chart.title}
                         softCharacterLimit={100}
                     />
                     <Toggle
@@ -52,13 +52,13 @@ export class EditorTextTab extends React.Component<{ editor: ChartEditor }> {
                     />
                     <AutoTextField
                         label="/grapher"
-                        value={chart.data.slug}
+                        value={chart.slug}
                         onValue={this.onSlug}
                         isAuto={chart.props.slug === undefined}
                         onToggleAuto={() =>
                             (chart.props.slug =
                                 chart.props.slug === undefined
-                                    ? chart.data.slug
+                                    ? chart.slug
                                     : undefined)
                         }
                         helpText="Human-friendly URL for this chart"
@@ -91,7 +91,7 @@ export class EditorTextTab extends React.Component<{ editor: ChartEditor }> {
                         label="Source"
                         field="sourceDesc"
                         store={chart.props}
-                        auto={chart.data.sourcesLine}
+                        auto={chart.sourcesLine}
                         helpText="Short comma-separated list of source names"
                         softCharacterLimit={60}
                     />

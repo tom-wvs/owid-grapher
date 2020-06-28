@@ -186,7 +186,7 @@ export class ChartUrl implements ObservableUrl {
     @computed get baseUrl(): string | undefined {
         if (this.externalBaseUrl) return this.externalBaseUrl
         if (this.chart.isPublished)
-            return `${BAKED_GRAPHER_URL}/${this.chart.data.slug}`
+            return `${BAKED_GRAPHER_URL}/${this.chart.slug}`
         else return undefined
     }
 

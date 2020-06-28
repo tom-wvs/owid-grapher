@@ -93,7 +93,7 @@ export class CSVGenerator {
     }
 
     @computed get csvFilename(): string {
-        return this.props.chart.data.slug + ".csv"
+        return this.props.chart.slug + ".csv"
     }
 
     // IE11 compatibility
