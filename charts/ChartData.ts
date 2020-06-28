@@ -30,7 +30,6 @@ export interface EntityDimensionInfo {
     entityDimensionKey: EntityDimensionKey
     fullLabel: string
     label: string
-    annotation?: string
     shortCode: string
 }
 
@@ -432,7 +431,6 @@ export class ChartData {
 
         const keyData = new Map<EntityDimensionKey, EntityDimensionInfo>()
         primaryDimensions.forEach((dimension, dimensionIndex) => {
-            const annotationMap = dimension.column.annotationsMap
             dimension.entitiesUniq.forEach(entityName => {
                 const entityCode = chart.table.entityNameToCodeMap.get(
                     entityName
@@ -458,7 +456,6 @@ export class ChartData {
                     entityDimensionKey,
                     entityId,
                     entity: entityName,
-                    annotation: annotationMap && annotationMap.get(entityName),
                     dimension,
                     index: dimensionIndex,
                     fullLabel,
@@ -517,10 +514,6 @@ export class ChartData {
 
     getLabelForKey(key: EntityDimensionKey): string {
         return this.lookupKey(key).label
-    }
-
-    getAnnotationForKey(key: EntityDimensionKey): string {
-        return this.lookupKey(key).annotation || ""
     }
 
     toggleKey(key: EntityDimensionKey) {

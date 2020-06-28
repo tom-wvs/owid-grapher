@@ -14,6 +14,7 @@ export const columnSpecs: { [name: string]: ColumnSpec } = {
         owidVariableId: 142721,
         slug: "cumulative_positivity_rate",
         name: "cumulative_positivity_rate",
+        annotationsColumnSlug: "tests_units",
         unit: "",
         description:
             "The number of confirmed cases divided by the number of tests, expressed as a percentage. Tests may refer to the number of tests performed or the number of people tested – depending on which is reported by the particular country.",
@@ -44,6 +45,7 @@ export const columnSpecs: { [name: string]: ColumnSpec } = {
         owidVariableId: 142754,
         slug: "short_term_tests_per_case",
         name: "short_term_tests_per_case",
+        annotationsColumnSlug: "tests_units",
         unit: "",
         description:
             "The number of tests divided by the number of confirmed cases. Not all countries report testing data on a daily basis.",
@@ -153,6 +155,7 @@ export const columnSpecs: { [name: string]: ColumnSpec } = {
         unit: "",
         description: "",
         coverage: "",
+        annotationsColumnSlug: "tests_units",
         datasetId: "covid",
         shortUnit: "",
         display: {
@@ -291,8 +294,6 @@ export const buildColumnSpec = (
     } else {
         spec.display!.numDecimalPlaces = 0
     }
-
-    // variable.display!.entityAnnotationsMap = buildEntityAnnotations(rows, name)
 
     return spec
 }

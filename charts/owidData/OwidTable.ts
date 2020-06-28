@@ -87,6 +87,7 @@ export interface ColumnSpec {
     datasetName?: string
     source?: OwidSource
     display?: OwidVariableDisplaySettings
+    annotationsColumnSlug?: columnSlug
 }
 
 export declare type RowBuilder = (row: Row, index?: int) => any
@@ -120,10 +121,17 @@ export abstract class AbstractColumn {
         return this.spec.coverage
     }
 
-    @computed get annotationsMap() {
-        const columnSlug = OwidTable.makeAnnotationColumnSlug(this.slug)
-        const column = this.table.columnsBySlug.get(columnSlug)
+    @computed private get annotationsMap() {
+        if (!this.spec.annotationsColumnSlug) return undefined
+        const column = this.table.columnsBySlug.get(
+            this.spec.annotationsColumnSlug
+        )
         return column ? column.entityMap : undefined
+    }
+
+    getAnnotationsFor(entityName: string) {
+        const map = this.annotationsMap
+        return map ? map.get(entityName) : undefined
     }
 
     @computed get entityMap() {
@@ -197,9 +205,6 @@ abstract class AbstractTable<ROW_TYPE extends Row> {
     constructor(rows: ROW_TYPE[], specs?: TableSpec) {
         this.rows = rows
         this.spec = specs ? specs : this.detectSpec()
-        Array.from(this.spec.keys()).forEach(slug => {
-            this.setSpecAndInitColumn(slug, this.spec.get(slug)!)
-        })
     }
 
     setSpecAndInitColumn(slug: string, spec: ColumnSpec) {
@@ -251,6 +256,9 @@ abstract class AbstractTable<ROW_TYPE extends Row> {
 
     detectSpec() {
         this.spec = AbstractTable.makeSpecsFromRows(this.rows)
+        Array.from(this.spec.keys()).forEach(slug => {
+            this.setSpecAndInitColumn(slug, this.spec.get(slug)!)
+        })
         return this.spec
     }
 
@@ -494,16 +502,19 @@ export class OwidTable extends AbstractTable<OwidRow> {
             columnSpecs.set(columnSlug, columnSpec)
 
             // todo: remove. move annotations to their own first class column.
-            let annotationColumnName: string
+            let annotationsColumnSlug: string
             let annotationMap: Map<string, string>
             if (variable.display.entityAnnotationsMap) {
-                annotationColumnName = this.makeAnnotationColumnSlug(columnSlug)
+                annotationsColumnSlug = this.makeAnnotationColumnSlug(
+                    columnSlug
+                )
                 annotationMap = this.annotationsToMap(
                     variable.display.entityAnnotationsMap
                 )
-                columnSpecs.set(annotationColumnName, {
-                    slug: annotationColumnName
+                columnSpecs.set(annotationsColumnSlug, {
+                    slug: annotationsColumnSlug
                 })
+                columnSpec.annotationsColumnSlug = annotationsColumnSlug
             }
 
             const timeColumnName = columnSpec.isDailyMeasurement
@@ -529,8 +540,8 @@ export class OwidTable extends AbstractTable<OwidRow> {
                     entityId: variable.entities[index],
                     entityCode: entityCodes[index]
                 }
-                if (annotationColumnName)
-                    row[annotationColumnName] = annotationMap.get(entityName)
+                if (annotationsColumnSlug)
+                    row[annotationsColumnSlug] = annotationMap.get(entityName)
                 return row
             })
             rows = rows.concat(newRows)

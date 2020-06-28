@@ -7,7 +7,6 @@ import {
     difference,
     entries,
     minBy,
-    fromPairs,
     sortBy
 } from "charts/Util"
 import moment from "moment"
@@ -181,39 +180,6 @@ export const makeCountryOptions = (
     })
 }
 
-function buildEntityAnnotations(
-    data: ParsedCovidCsvRow[],
-    metric: MetricKind
-): string | undefined {
-    if (
-        metric === "cases" ||
-        metric === "deaths" ||
-        metric === "case_fatality_rate"
-    ) {
-        return `Benin: Note that on May 19 the methodology has changed
-Spain: Note that on May 25 the methodology has changed
-United Kingdom: Note that on June 1 the methodology has changed
-Panama: Note that on June 3 the methodology has changed
-European Union: Some EU countries changed methodology. See country-by-country series.
-India: Note that on June 17 earlier deaths were added to the total.`
-    } else if (
-        metric === "tests" ||
-        metric === "positive_test_rate" ||
-        metric === "tests_per_case"
-    ) {
-        // convert to object to extract unique country => unit mapping
-        const unitByCountry = fromPairs(
-            data
-                .filter(row => row.tests_units)
-                .map(row => [row.location, row.tests_units])
-        )
-        return Object.entries(unitByCountry)
-            .map(([location, unit]) => `${location}: ${unit}`)
-            .join("\n")
-    }
-    return undefined
-}
-
 export const getColumnSlug = (
     name: MetricKind,
     perCapita: number,
@@ -279,6 +245,14 @@ export const addDaysSinceColumn = (
     })
     return slug
 }
+
+// todo: add annotations back
+// `Benin: Note that on May 19 the methodology has changed
+// Spain: Note that on May 25 the methodology has changed
+// United Kingdom: Note that on June 1 the methodology has changed
+// Panama: Note that on June 3 the methodology has changed
+// European Union: Some EU countries changed methodology. See country-by-country series.
+// India: Note that on June 17 earlier deaths were added to the total.`
 
 const trajectoryOptions = {
     deaths: {
