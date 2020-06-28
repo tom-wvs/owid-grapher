@@ -1,6 +1,6 @@
 #! /usr/bin/env yarn jest
 
-import { OwidTable } from "charts/owidData/OwidTable"
+import { OwidTable, BasicTable } from "charts/owidData/OwidTable"
 import { readVariable } from "test/fixtures"
 import { slugify } from "charts/Util"
 
@@ -53,6 +53,40 @@ describe("from legacy", () => {
             "year",
             name
         ])
+    })
+})
+
+describe("from csv", () => {
+    const csv = `country,population
+iceland,1
+france,50
+usa,300
+canada,20`
+    const table = BasicTable.fromCsv(csv)
+
+    it("a table can be made from csv", () => {
+        expect(table.rows.length).toEqual(4)
+        expect(Array.from(table.columnsByName.keys())).toEqual([
+            "country",
+            "population"
+        ])
+    })
+
+    it("filtering works", () => {
+        const col = table.columnsBySlug.get("country")!
+        expect(col.values[3]).toEqual("canada")
+        table.addFilterColumn(
+            "pop_filter",
+            row => parseInt(row.population) > 40
+        )
+        expect(col?.values[0]).toEqual("france")
+        expect(col?.values[1]).toEqual("usa")
+
+        table.addFilterColumn("name_filter", row =>
+            (row.country as string).startsWith("u")
+        )
+        expect(col?.values[0]).toEqual("usa")
+        expect(col?.values[1]).toEqual(undefined)
     })
 })
 

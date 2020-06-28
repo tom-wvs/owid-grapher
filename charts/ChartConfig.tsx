@@ -71,6 +71,7 @@ import { ColorScaleConfigProps } from "./ColorScaleConfig"
 import { countries } from "utils/countries"
 import { DataTableTransform } from "./DataTableTransform"
 import { getWindowQueryParams } from "utils/client/url"
+import { populationMap } from "./PopulationMap"
 
 declare const App: any
 declare const window: any
@@ -342,14 +343,6 @@ export class ChartConfig {
 
     @action.bound receiveData(json: OwidVariablesAndEntityKey) {
         this.table = OwidTable.fromLegacy(json)
-        if (this.props.minPopulationFilter) this.applyFilters()
-    }
-
-    applyFilters() {
-        this.table.applyMinPopSizeFilter(
-            this.selectedCountryNames,
-            this.props.minPopulationFilter
-        )
     }
 
     // todo: refactor
@@ -492,7 +485,18 @@ export class ChartConfig {
         this.disposers.push(
             reaction(
                 () => this.props.minPopulationFilter,
-                () => this.applyFilters()
+                () => {
+                    const slug = "pop_filter"
+                    const minPop = this.props.minPopulationFilter
+                    if (!minPop) this.table.deleteColumnBySlug(slug)
+                    else
+                        this.table.addFilterColumn(slug, row => {
+                            const name = row.entityName
+                            return populationMap[name]
+                                ? populationMap[name] < minPop
+                                : false
+                        })
+                }
             )
         )
 

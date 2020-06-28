@@ -899,7 +899,6 @@ export class CovidDataExplorer extends React.Component<{
     @action.bound private _updateChart() {
         if (!this.chart.table.rows.length) this.initTable()
         this.initRequestedColumns()
-        this.chart.applyFilters()
         const chartProps = this.chart.props
         chartProps.title = this.chartTitle
         chartProps.subtitle = this.subtitle

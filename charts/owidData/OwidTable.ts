@@ -14,8 +14,8 @@ import {
 import { max, min, flatten } from "lodash"
 import { computed, action, observable } from "mobx"
 import { OwidSource } from "./OwidSource"
-import { populationMap } from "charts/PopulationMap"
 import { EPOCH_DATE } from "settings"
+import { csvParse } from "d3-dsv"
 
 declare type int = number
 declare type year = int
@@ -85,6 +85,7 @@ export interface ColumnSpec {
     coverage?: string
     datasetId?: string
     datasetName?: string
+    isFilterColumn?: boolean
     source?: OwidSource
     display?: OwidVariableDisplaySettings
     annotationsColumnSlug?: columnSlug
@@ -165,14 +166,17 @@ export abstract class AbstractColumn {
         return this.spec.slug
     }
 
+    // todo: remove
     @computed get entityNames() {
         return this.rows.map(row => row.entityName)
     }
 
+    // todo: remove
     @computed get entitiesUniq() {
         return new Set(this.entityNames)
     }
 
+    // todo: remove
     @computed get years() {
         return this.rows.map(row => (row.year ?? row.day)!)
     }
@@ -192,7 +196,8 @@ abstract class AbstractTemporalColumn extends AbstractColumn {}
 class DayColumn extends AbstractTemporalColumn {}
 class YearColumn extends AbstractTemporalColumn {}
 class NumberColumn extends AbstractColumn {}
-class StringColumn extends AbstractColumn {}
+class AnyColumn extends AbstractColumn {}
+class BooleanColumn extends AbstractColumn {}
 class EntityColumn extends AbstractColumn {}
 
 declare type ColumnSpecs = Map<columnSlug, ColumnSpec>
@@ -208,7 +213,7 @@ abstract class AbstractTable<ROW_TYPE extends Row> {
             Array.from(columnSpecs.keys()).forEach(slug => {
                 this.columns.set(
                     slug,
-                    new StringColumn(this, columnSpecs.get(slug)!)
+                    new AnyColumn(this, columnSpecs.get(slug)!)
                 )
             })
     }
@@ -216,7 +221,7 @@ abstract class AbstractTable<ROW_TYPE extends Row> {
     protected detectAndAddColumnsFromRows() {
         const specs = AbstractTable.makeSpecsFromRows(this.rows)
         Array.from(specs.keys()).forEach(slug => {
-            this.columns.set(slug, new StringColumn(this, specs.get(slug)!))
+            this.columns.set(slug, new AnyColumn(this, specs.get(slug)!))
         })
     }
 
@@ -230,14 +235,38 @@ abstract class AbstractTable<ROW_TYPE extends Row> {
         return map
     }
 
-    @action.bound addColumn(spec: ColumnSpec, rowFn?: RowBuilder) {
+    @action.bound deleteColumnBySlug(slug: columnSlug) {
+        this.rows.forEach(row => delete row[slug])
+        this.columnNames.delete(slug)
+    }
+
+    @action.bound addFilterColumn(
+        slug: columnSlug,
+        predicate: (row: Row) => boolean
+    ) {
+        return this._addColumn(
+            { slug, isFilterColumn: true },
+            predicate,
+            BooleanColumn
+        )
+    }
+
+    private _addColumn(
+        spec: ColumnSpec,
+        rowFn?: RowBuilder,
+        columnType = AnyColumn
+    ) {
         const slug = spec.slug
-        this.columns.set(slug, new StringColumn(this, spec))
+        this.columns.set(slug, new columnType(this, spec))
         if (rowFn)
             this.rows.forEach((row, index) => {
                 ;(row as any)[slug] = rowFn(row, index)
             })
         return this
+    }
+
+    @action.bound addColumn(spec: ColumnSpec, rowFn?: RowBuilder) {
+        return this._addColumn(spec, rowFn)
     }
 
     @action.bound addRollingAverageColumn(
@@ -254,7 +283,7 @@ abstract class AbstractTable<ROW_TYPE extends Row> {
             dateColName,
             windowSize
         )
-        this.addColumn(
+        this._addColumn(
             spec,
             (row, index) => (row[spec.slug] = averages[index!])
         )
@@ -276,52 +305,20 @@ abstract class AbstractTable<ROW_TYPE extends Row> {
         return new Set(Array.from(this.columns.values()).map(col => col.name))
     }
 
-    @observable protected lastFilterTime = 0
     @computed get unfilteredRows() {
-        return this.lastFilterTime
-            ? this.rows.filter(row => !row._filtered)
-            : this.rows
+        const names = this.filterColumnNames
+        const filterFn = (row: Row) => names.every(name => row[name])
+        return names.length ? this.rows.filter(filterFn) : this.rows
     }
 
-    @computed get filteredRows() {
-        return this.lastFilterTime ? this.rows.filter(row => row._filtered) : []
+    @computed private get filterColumnNames() {
+        return this.columnsAsArray
+            .filter(col => col.spec.isFilterColumn)
+            .map(col => col.name)
     }
 
-    protected clearFilters() {
-        this.filteredRows.forEach(row => (row._filtered = false))
-    }
-}
-
-export class OwidTable extends AbstractTable<OwidRow> {
-    @computed get columnsByOwidVarId() {
-        const map = new Map<number, AbstractColumn>()
-        Array.from(this.columns.values()).forEach((column, index) => {
-            map.set(column.spec.owidVariableId ?? index, column)
-        })
-        return map
-    }
-
-    @action.bound applyMinPopSizeFilter(
-        selectedCountryNames: Set<string>,
-        minPopulationSize?: int
-    ) {
-        this.lastFilterTime = Date.now()
-        if (minPopulationSize === undefined) return this.clearFilters()
-        this.rows.forEach(row => {
-            const name = row.entityName
-            const filter = populationMap[name]
-                ? populationMap[name] < minPopulationSize! &&
-                  !selectedCountryNames.has(name)
-                : false
-            row._filtered = filter
-        })
-        return this
-    }
-
-    @action.bound addRowsAndDetectColumns(rows: OwidRow[]) {
-        this.rows = this.rows.concat(rows)
-        this.detectAndAddColumnsFromRows()
-        return this
+    @computed private get columnsAsArray() {
+        return Array.from(this.columns.values())
     }
 
     // for debugging
@@ -344,6 +341,28 @@ export class OwidTable extends AbstractTable<OwidRow> {
             .map(row => cols.map(cName => row[cName] ?? "").join(delimiter))
             .join("\n")
         return header + body
+    }
+}
+
+export class BasicTable extends AbstractTable<Row> {
+    static fromCsv(csv: string) {
+        return new BasicTable(csvParse(csv))
+    }
+}
+
+export class OwidTable extends AbstractTable<OwidRow> {
+    @computed get columnsByOwidVarId() {
+        const map = new Map<number, AbstractColumn>()
+        Array.from(this.columns.values()).forEach((column, index) => {
+            map.set(column.spec.owidVariableId ?? index, column)
+        })
+        return map
+    }
+
+    @action.bound addRowsAndDetectColumns(rows: OwidRow[]) {
+        this.rows = this.rows.concat(rows)
+        this.detectAndAddColumnsFromRows()
+        return this
     }
 
     @computed get availableEntities() {
