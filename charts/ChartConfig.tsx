@@ -797,7 +797,7 @@ export class ChartConfig {
         )
     }
 
-    @computed private get isSingleVariable(): boolean {
+    @computed get isSingleVariable(): boolean {
         return this.data.primaryDimensions.length === 1
     }
 

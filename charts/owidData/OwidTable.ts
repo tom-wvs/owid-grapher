@@ -218,7 +218,7 @@ abstract class AbstractTable<ROW_TYPE extends Row> {
         this.rows.forEach((row, index) => {
             ;(row as any)[slug] = rowFn(row, index)
         })
-        console.log("adding column " + slug, spec)
+        // console.log("adding column " + slug, spec)
         return this
     }
 
