@@ -12,7 +12,7 @@ import {
     uniq,
     lastOfNonEmptyArray
 } from "./Util"
-import { computed, toJS, action } from "mobx"
+import { computed, action } from "mobx"
 import { ChartConfig } from "./ChartConfig"
 import { EntityDimensionKey } from "./EntityDimensionKey"
 import { Color } from "./Color"
@@ -46,10 +46,14 @@ export class ChartData {
 
     // ChartData is ready to go iff we have retrieved data for every variable associated with the chart
     @computed get isReady(): boolean {
+        return this.loadingVarIds.length === 0
+    }
+
+    @computed get loadingVarIds(): number[] {
         const { chart } = this
-        return chart.dimensions.every(dim =>
-            chart.table.columnsByOwidVarId.has(dim.variableId)
-        )
+        return chart.dimensions
+            .map(dim => dim.variableId)
+            .filter(id => !chart.table.columnsByOwidVarId.has(id))
     }
 
     @computed.struct get filledDimensions(): ChartDimensionWithOwidVariable[] {

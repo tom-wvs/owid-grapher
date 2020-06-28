@@ -5,6 +5,15 @@ import { readVariable } from "test/fixtures"
 import { slugify } from "charts/Util"
 
 describe(OwidTable, () => {
+    // Scenarios
+    // create: rows|noRows & noSpec|fullSpec|partialSpec|incorrectSpec?
+    //  add: rows
+    //  add: spec
+    //  add: spec with rowGen
+    //  add: partialSpec
+    //  add partialSpec with rowGen
+    //  change spec?
+
     const rows = [
         {
             year: 2020,

@@ -195,36 +195,52 @@ class NumberColumn extends AbstractColumn {}
 class StringColumn extends AbstractColumn {}
 class EntityColumn extends AbstractColumn {}
 
-declare type TableSpec = Map<columnSlug, ColumnSpec>
+declare type ColumnSpecs = Map<columnSlug, ColumnSpec>
 
 abstract class AbstractTable<ROW_TYPE extends Row> {
     rows: ROW_TYPE[]
-    @observable spec: TableSpec
     @observable protected columns: Map<columnSlug, AbstractColumn> = new Map()
 
-    constructor(rows: ROW_TYPE[], specs: TableSpec = new Map()) {
+    constructor(rows: ROW_TYPE[], columnSpecs?: ColumnSpecs) {
         this.rows = rows
-        this.spec = specs
-        if (specs.size === 0) this.detectSpec()
-        else this.initColumns()
+        if (!columnSpecs) this.detectAndAddColumnsFromRows()
+        else
+            Array.from(columnSpecs.keys()).forEach(slug => {
+                this.columns.set(
+                    slug,
+                    new StringColumn(this, columnSpecs.get(slug)!)
+                )
+            })
     }
 
-    setSpecAndInitColumn(slug: string, spec: ColumnSpec) {
-        this.columns.set(slug, new StringColumn(this, spec))
-    }
-
-    addColumn(spec: ColumnSpec, rowFn: RowBuilder) {
-        const slug = spec.slug
-        this.spec.set(slug, spec)
-        this.columns.set(slug, new StringColumn(this, spec))
-        this.rows.forEach((row, index) => {
-            ;(row as any)[slug] = rowFn(row, index)
+    protected detectAndAddColumnsFromRows() {
+        const specs = AbstractTable.makeSpecsFromRows(this.rows)
+        Array.from(specs.keys()).forEach(slug => {
+            this.columns.set(slug, new StringColumn(this, specs.get(slug)!))
         })
-        // console.log("adding column " + slug, spec)
+    }
+
+    static makeSpecsFromRows(rows: any[]): ColumnSpecs {
+        const map = new Map()
+        rows.forEach(row => {
+            Object.keys(row).forEach(key => {
+                map.set(key, { slug: key })
+            })
+        })
+        return map
+    }
+
+    @action.bound addColumn(spec: ColumnSpec, rowFn?: RowBuilder) {
+        const slug = spec.slug
+        this.columns.set(slug, new StringColumn(this, spec))
+        if (rowFn)
+            this.rows.forEach((row, index) => {
+                ;(row as any)[slug] = rowFn(row, index)
+            })
         return this
     }
 
-    addRollingAverageColumn(
+    @action.bound addRollingAverageColumn(
         spec: ColumnSpec,
         windowSize: int,
         valueAccessor: (row: Row) => any,
@@ -256,30 +272,8 @@ abstract class AbstractTable<ROW_TYPE extends Row> {
         return map
     }
 
-    private initColumns() {
-        Array.from(this.spec.keys()).forEach(slug => {
-            this.setSpecAndInitColumn(slug, this.spec.get(slug)!)
-        })
-    }
-
-    // todo: improve api?
-    detectSpec() {
-        this.spec = AbstractTable.makeSpecsFromRows(this.rows)
-        this.initColumns()
-    }
-
-    static makeSpecsFromRows(rows: any[]): TableSpec {
-        const map = new Map()
-        rows.forEach(row => {
-            Object.keys(row).forEach(key => {
-                map.set(key, { slug: key })
-            })
-        })
-        return map
-    }
-
     @computed get columnNames() {
-        return new Set(this.spec.keys())
+        return new Set(Array.from(this.columns.values()).map(col => col.name))
     }
 
     @observable protected lastFilterTime = 0
@@ -324,13 +318,9 @@ export class OwidTable extends AbstractTable<OwidRow> {
         return this
     }
 
-    printStats() {
-        console.log(this.minYear, this.maxYear)
-        console.log(this.toDelimited(",", 10))
-    }
-
-    addRows(rows: OwidRow[]) {
+    @action.bound addRowsAndDetectColumns(rows: OwidRow[]) {
         this.rows = this.rows.concat(rows)
+        this.detectAndAddColumnsFromRows()
         return this
     }
 
@@ -404,10 +394,9 @@ export class OwidTable extends AbstractTable<OwidRow> {
     }
 
     specToObject() {
-        const spec = this.spec
         const output: any = {}
-        Array.from(this.spec.keys()).forEach(slug => {
-            output[slug] = spec.get(slug)
+        Array.from(this.columns.values()).forEach(col => {
+            output[col.slug] = col.spec
         })
         return output
     }

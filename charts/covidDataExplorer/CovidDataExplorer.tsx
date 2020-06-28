@@ -681,8 +681,12 @@ export class CovidDataExplorer extends React.Component<{
                 const value = originalRowFn(row)
                 if (value === undefined) return undefined
                 const pop = row.population
-                if (!pop)
-                    throw new Error(`Missing population for ${row.location}`)
+                if (!pop) {
+                    console.log(
+                        `Warning: Missing population for ${row.location}. Excluding from perCapita`
+                    )
+                    return undefined
+                }
                 return perCapita * (value / pop)
             }
         }
@@ -883,17 +887,9 @@ export class CovidDataExplorer extends React.Component<{
         }, 1)
     }
 
-    private addContinentsColumn() {
-        this.chart.table.setSpecAndInitColumn(
-            "continent",
-            columnSpecs.continents
-        )
-    }
-
     private initTable() {
-        this.addContinentsColumn()
-        this.chart.table.addRows(this.props.data)
-        this.chart.table.detectSpec()
+        this.chart.table.addRowsAndDetectColumns(this.props.data)
+        this.chart.table.addColumn(columnSpecs.continents)
     }
 
     // We can't create a new chart object with every radio change because the Chart component itself
