@@ -849,13 +849,11 @@ export class CovidDataExplorer extends React.Component<{
     private addNewCasesSmoothedColumn() {
         const smoothing = this.constrainedParams.smoothing
         const slug = `new_cases_smoothed_${smoothing}day`
-        const spec = {
-            id: 1,
-            slug
-        }
-
+        if (this.chart.table.columnsBySlug.has(slug)) return slug
         this.chart.table.addRollingAverageColumn(
-            spec,
+            {
+                slug
+            },
             smoothing,
             row => row.new_cases,
             "day",
