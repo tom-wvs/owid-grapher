@@ -224,8 +224,6 @@ export class ChartDimensionWithOwidVariable {
     ) {
         this.index = index
         this.props = dimension
-
-        if (!column) debugger
         this.column = column
     }
 }

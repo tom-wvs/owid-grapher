@@ -53,8 +53,8 @@ const dateToYear = (dateString: string): number =>
         moment.utc(EPOCH_DATE).toDate()
     )
 
-// export const covidDataPath = "https://covid.ourworldindata.org/data/owid-covid-data.csv"
-export const covidDataPath = "http://localhost:3099/sandbox/t2.csv"
+export const covidDataPath =
+    "https://covid.ourworldindata.org/data/owid-covid-data.csv"
 export const covidLastUpdatedPath =
     "https://covid.ourworldindata.org/data/owid-covid-data-last-updated-timestamp.txt"
 
