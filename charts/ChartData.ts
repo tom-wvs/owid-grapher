@@ -1,6 +1,5 @@
 import {
     map,
-    every,
     keyBy,
     includes,
     uniqWith,
@@ -11,8 +10,6 @@ import {
     without,
     find,
     uniq,
-    defaultTo,
-    slugify,
     lastOfNonEmptyArray
 } from "./Util"
 import { computed, toJS, action } from "mobx"
@@ -75,87 +72,6 @@ export class ChartData {
         return this.filledDimensions.filter(
             dim => dim.property === "y" || dim.property === "x"
         )
-    }
-
-    // XXX refactor into the transforms
-    @computed get minYear(): number {
-        const { chart } = this
-        //if (chart.isScatter && !chart.scatter.failMessage && chart.scatter.xOverrideYear != undefined)
-        //    return undefined
-        if (chart.tab === "table") return chart.dataTableTransform.startYear
-        else if (chart.primaryTab === "map") return chart.map.data.targetYear
-        else if (chart.isScatter && !chart.scatter.failMessage)
-            return chart.scatter.startYear
-        else if (chart.isDiscreteBar && !chart.discreteBar.failMessage)
-            return chart.discreteBar.targetYear
-        else return chart.lineChart.startYear
-    }
-
-    @computed get maxYear(): number {
-        const { chart } = this
-        //if (chart.isScatter && !chart.scatter.failMessage && chart.scatter.xOverrideYear != undefined)
-        //    return undefined
-        if (chart.tab === "table") return chart.dataTableTransform.endYear
-        else if (chart.primaryTab === "map") return chart.map.data.targetYear
-        else if (chart.isScatter && !chart.scatter.failMessage)
-            return chart.scatter.endYear
-        else if (chart.isDiscreteBar && !chart.discreteBar.failMessage)
-            return chart.discreteBar.targetYear
-        else return chart.lineChart.endYear
-    }
-
-    @computed get currentTitle(): string {
-        const { chart } = this
-        let text = chart.title
-
-        if (
-            chart.primaryTab === "chart" &&
-            chart.addCountryMode !== "add-country" &&
-            chart.data.selectedEntities.length === 1 &&
-            (!chart.props.hideTitleAnnotation || this.canChangeEntity)
-        ) {
-            const { selectedEntities } = chart.data
-            const entityStr = selectedEntities.join(", ")
-            if (entityStr.length > 0) {
-                text = text + ", " + entityStr
-            }
-        }
-
-        if (
-            !chart.props.hideTitleAnnotation &&
-            chart.isLineChart &&
-            chart.lineChart.isRelativeMode
-        ) {
-            text =
-                "Change in " +
-                (text.charAt(1).match(/[A-Z]/)
-                    ? text
-                    : text.charAt(0).toLowerCase() + text.slice(1))
-        }
-
-        // Causes difficulties with charts like https://ourworldindata.org/grapher/antibiotic-use-in-livestock-in-europe
-        /*if (chart.props.tab === "map" && chart.map.props.projection !== "World") {
-            const label = labelsByRegion[chart.map.props.projection]
-            text = text + ` in ${label}`
-        }*/
-
-        if (
-            !chart.props.hideTitleAnnotation ||
-            (this.chart.isLineChart &&
-                this.chart.lineChart.isSingleYear &&
-                this.chart.lineChart.hasTimeline) ||
-            (this.chart.primaryTab === "map" && this.chart.map.data.hasTimeline)
-        ) {
-            const { minYear, maxYear } = this
-            const timeFrom = chart.formatYearFunction(minYear)
-            const timeTo = chart.formatYearFunction(maxYear)
-            const time =
-                timeFrom === timeTo ? timeFrom : timeFrom + " to " + timeTo
-
-            text = text + ", " + time
-        }
-
-        return text.trim()
     }
 
     @computed get originUrl(): string {
@@ -293,7 +209,7 @@ export class ChartData {
     @action.bound setSelectedEntitiesByCode(entityCodes: string[]) {
         const matchedEntities = new Map<string, boolean>()
         entityCodes.forEach(code => matchedEntities.set(code, false))
-        if (this.canChangeEntity) {
+        if (this.chart.canChangeEntity) {
             this.availableEntities.forEach(entityName => {
                 const entityId = this.chart.table.entityNameToIdMap.get(
                     entityName
@@ -418,21 +334,6 @@ export class ChartData {
         return keyData
     }
 
-    @computed get canAddData(): boolean {
-        return (
-            this.chart.addCountryMode === "add-country" &&
-            this.availableKeys.length > 1
-        )
-    }
-
-    @computed get canChangeEntity(): boolean {
-        return (
-            !this.chart.isScatter &&
-            this.chart.addCountryMode === "change-country" &&
-            this.availableEntities.length > 1
-        )
-    }
-
     @computed.struct get availableKeys(): EntityDimensionKey[] {
         return sortBy([...Array.from(this.entityDimensionMap.keys())])
     }
@@ -489,11 +390,5 @@ export class ChartData {
                 sources.push({ source: column.source!, dimension: dim })
         })
         return sources
-    }
-
-    @computed get json() {
-        return toJS({
-            availableEntities: this.availableEntitiesToReader
-        })
     }
 }

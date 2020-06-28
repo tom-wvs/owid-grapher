@@ -102,7 +102,7 @@ class ShareMenu extends React.Component<ShareMenuProps, ShareMenuState> {
     }
 
     @computed get title(): string {
-        return this.props.chart.data.currentTitle
+        return this.props.chart.currentTitle
     }
 
     @computed get isDisabled(): boolean {
@@ -597,9 +597,9 @@ export class Controls {
         const { chart } = this.props
         return (
             chart.tab === "chart" &&
-            ((chart.data.canAddData && !this.hasFloatingAddButton) ||
+            ((chart.canAddData && !this.hasFloatingAddButton) ||
                 chart.isScatter ||
-                chart.data.canChangeEntity ||
+                chart.canChangeEntity ||
                 (chart.isStackedArea && chart.stackedArea.canToggleRelative) ||
                 (chart.isLineChart && chart.lineChart.canToggleRelative))
         )
@@ -618,7 +618,7 @@ export class Controls {
         return (
             chart.primaryTab === "chart" &&
             !chart.isExporting &&
-            chart.data.canAddData &&
+            chart.canAddData &&
             (chart.isLineChart || chart.isStackedArea || chart.isDiscreteBar)
         )
     }
@@ -952,7 +952,7 @@ export class ControlsFooterView extends React.Component<{
         const { chart } = props.controls.props
         return (
             <div className="extraControls">
-                {chart.data.canAddData &&
+                {chart.canAddData &&
                     !hasFloatingAddButton &&
                     !chart.hideEntityControls && (
                         <button
@@ -974,7 +974,7 @@ export class ControlsFooterView extends React.Component<{
                         </button>
                     )}
 
-                {chart.data.canChangeEntity && !chart.hideEntityControls && (
+                {chart.canChangeEntity && !chart.hideEntityControls && (
                     <button
                         type="button"
                         onClick={this.onDataSelect}

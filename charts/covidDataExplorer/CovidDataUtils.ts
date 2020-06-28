@@ -54,7 +54,7 @@ const dateToYear = (dateString: string): number =>
     )
 
 // export const covidDataPath = "https://covid.ourworldindata.org/data/owid-covid-data.csv"
-export const covidDataPath = "http://localhost:3099/sandbox/testData.csv"
+export const covidDataPath = "http://localhost:3099/sandbox/t2.csv"
 export const covidLastUpdatedPath =
     "https://covid.ourworldindata.org/data/owid-covid-data-last-updated-timestamp.txt"
 

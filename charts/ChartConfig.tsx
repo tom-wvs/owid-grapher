@@ -435,7 +435,7 @@ export class ChartConfig {
     }
 
     @computed get showAddEntityControls() {
-        return !this.hideEntityControls && this.data.canAddData
+        return !this.hideEntityControls && this.canAddData
     }
 
     // For now I am only exposing this programmatically for the dashboard builder. Setting this to true
@@ -717,10 +717,103 @@ export class ChartConfig {
         )
     }
 
+    @computed get currentTitle(): string {
+        let text = this.title
+
+        if (
+            this.primaryTab === "chart" &&
+            this.addCountryMode !== "add-country" &&
+            this.data.selectedEntities.length === 1 &&
+            (!this.props.hideTitleAnnotation || this.canChangeEntity)
+        ) {
+            const { selectedEntities } = this.data
+            const entityStr = selectedEntities.join(", ")
+            if (entityStr.length > 0) {
+                text = text + ", " + entityStr
+            }
+        }
+
+        if (
+            !this.props.hideTitleAnnotation &&
+            this.isLineChart &&
+            this.lineChart.isRelativeMode
+        ) {
+            text =
+                "Change in " +
+                (text.charAt(1).match(/[A-Z]/)
+                    ? text
+                    : text.charAt(0).toLowerCase() + text.slice(1))
+        }
+
+        // Causes difficulties with charts like https://ourworldindata.org/grapher/antibiotic-use-in-livestock-in-europe
+        /*if (chart.props.tab === "map" && chart.map.props.projection !== "World") {
+            const label = labelsByRegion[chart.map.props.projection]
+            text = text + ` in ${label}`
+        }*/
+
+        if (
+            !this.props.hideTitleAnnotation ||
+            (this.isLineChart &&
+                this.lineChart.isSingleYear &&
+                this.lineChart.hasTimeline) ||
+            (this.primaryTab === "map" && this.map.data.hasTimeline)
+        ) {
+            const { minYear, maxYear } = this
+            const timeFrom = this.formatYearFunction(minYear)
+            const timeTo = this.formatYearFunction(maxYear)
+            const time =
+                timeFrom === timeTo ? timeFrom : timeFrom + " to " + timeTo
+
+            text = text + ", " + time
+        }
+
+        return text.trim()
+    }
+
+    @computed get maxYear(): number {
+        //if (chart.isScatter && !chart.scatter.failMessage && chart.scatter.xOverrideYear != undefined)
+        //    return undefined
+        if (this.tab === "table") return this.dataTableTransform.endYear
+        else if (this.primaryTab === "map") return this.map.data.targetYear
+        else if (this.isScatter && !this.scatter.failMessage)
+            return this.scatter.endYear
+        else if (this.isDiscreteBar && !this.discreteBar.failMessage)
+            return this.discreteBar.targetYear
+        else return this.lineChart.endYear
+    }
+
+    // XXX refactor into the transforms
+    @computed get minYear(): number {
+        //if (chart.isScatter && !chart.scatter.failMessage && chart.scatter.xOverrideYear != undefined)
+        //    return undefined
+        if (this.tab === "table") return this.dataTableTransform.startYear
+        else if (this.primaryTab === "map") return this.map.data.targetYear
+        else if (this.isScatter && !this.scatter.failMessage)
+            return this.scatter.startYear
+        else if (this.isDiscreteBar && !this.discreteBar.failMessage)
+            return this.discreteBar.targetYear
+        else return this.lineChart.startYear
+    }
+
     @computed get sourcesLine(): string {
         return this.props.sourceDesc !== undefined
             ? this.props.sourceDesc
             : this.defaultSourcesLine
+    }
+
+    @computed get canAddData(): boolean {
+        return (
+            this.addCountryMode === "add-country" &&
+            this.data.availableKeys.length > 1
+        )
+    }
+
+    @computed get canChangeEntity(): boolean {
+        return (
+            !this.isScatter &&
+            this.addCountryMode === "change-country" &&
+            this.data.availableEntities.length > 1
+        )
     }
 
     @computed private get defaultSourcesLine(): string {
