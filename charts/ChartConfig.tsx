@@ -343,6 +343,7 @@ export class ChartConfig {
 
     @action.bound receiveData(json: OwidVariablesAndEntityKey) {
         this.table = OwidTable.fromLegacy(json)
+        this.updatePopulationFilter()
     }
 
     // todo: refactor
@@ -486,16 +487,7 @@ export class ChartConfig {
             reaction(
                 () => this.props.minPopulationFilter,
                 () => {
-                    const slug = "pop_filter"
-                    const minPop = this.props.minPopulationFilter
-                    if (!minPop) this.table.deleteColumnBySlug(slug)
-                    else
-                        this.table.addFilterColumn(slug, row => {
-                            const name = row.entityName
-                            return populationMap[name]
-                                ? populationMap[name] < minPop
-                                : false
-                        })
+                    this.updatePopulationFilter()
                 }
             )
         )
@@ -516,6 +508,18 @@ export class ChartConfig {
         }
 
         if (!this.isNode) this.ensureValidConfig()
+    }
+
+    updatePopulationFilter() {
+        const slug = "pop_filter"
+        const minPop = this.props.minPopulationFilter
+        if (!minPop) this.table.deleteColumnBySlug(slug)
+        else
+            this.table.addFilterColumn(slug, row => {
+                const name = row.entityName
+                const pop = populationMap[name]
+                return !pop || pop >= minPop
+            })
     }
 
     ensureValidConfig() {

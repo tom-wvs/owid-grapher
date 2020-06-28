@@ -18,7 +18,7 @@ import {
 } from "./CovidTypes"
 import { columnSpecs } from "./CovidColumnSpecs"
 import { csv } from "d3-fetch"
-import { ColumnSpec, OwidTable } from "charts/owidData/OwidTable"
+import { OwidTable, ComputedColumnSpec } from "charts/owidData/OwidTable"
 
 const keepStrings = new Set(
     `iso_code location date tests_units continent`.split(" ")
@@ -224,25 +224,26 @@ export const addDaysSinceColumn = (
     title: string
 ) => {
     const slug = `daysSince${sourceColumnSlug}Hit${threshold}`
-    const spec: ColumnSpec = {
+    const spec: ComputedColumnSpec = {
         ...columnSpecs.days_since,
         name: title,
         owidVariableId: id,
-        slug
+        slug,
+        fn: row => {
+            if (row.entityName !== currentCountry) {
+                const sourceValue = row[sourceColumnSlug]
+                if (sourceValue === undefined || sourceValue < threshold)
+                    return undefined
+                currentCountry = row.entityName
+                countryExceededThresholdOnDay = row.day
+            }
+            return row.day - countryExceededThresholdOnDay
+        }
     }
 
     let currentCountry: number
     let countryExceededThresholdOnDay: number
-    table.addColumn(spec, row => {
-        if (row.entityName !== currentCountry) {
-            const sourceValue = row[sourceColumnSlug]
-            if (sourceValue === undefined || sourceValue < threshold)
-                return undefined
-            currentCountry = row.entityName
-            countryExceededThresholdOnDay = row.day
-        }
-        return row.day - countryExceededThresholdOnDay
-    })
+    table.addComputedColumn(spec)
     return slug
 }
 

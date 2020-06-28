@@ -57,7 +57,7 @@ import {
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import { ColorScheme, ColorSchemes } from "charts/ColorSchemes"
 import { columnSpecs, buildColumnSpec } from "./CovidColumnSpecs"
-import { RowBuilder } from "charts/owidData/OwidTable"
+import { RowToValueMapper } from "charts/owidData/OwidTable"
 
 const abSeed = Math.random()
 
@@ -652,7 +652,7 @@ export class CovidDataExplorer extends React.Component<{
 
     private initColumn(
         columnName: MetricKind,
-        rowFn: RowBuilder,
+        rowFn: RowToValueMapper,
         daily: boolean = false,
         perCapita = this.constrainedParams.perCapita ? this.perCapitaDivisor : 1
     ) {
@@ -699,7 +699,7 @@ export class CovidDataExplorer extends React.Component<{
                 "day",
                 "entityName"
             )
-        else table.addColumn(spec, rowFn)
+        else table.addComputedColumn({ ...spec, fn: rowFn })
     }
 
     @computed get currentYVarId() {
@@ -889,7 +889,7 @@ export class CovidDataExplorer extends React.Component<{
 
     private initTable() {
         this.chart.table.addRowsAndDetectColumns(this.props.data)
-        this.chart.table.addColumn(columnSpecs.continents)
+        this.chart.table.addColumnSpec(columnSpecs.continents)
     }
 
     // We can't create a new chart object with every radio change because the Chart component itself

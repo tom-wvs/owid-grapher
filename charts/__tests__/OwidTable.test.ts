@@ -30,10 +30,10 @@ describe(OwidTable, () => {
     })
 
     it("a column can be added", () => {
-        table.addColumn(
-            { slug: "populationInMillions" },
-            row => row.population / 1000000
-        )
+        table.addComputedColumn({
+            slug: "populationInMillions",
+            fn: row => row.population / 1000000
+        })
         expect(table.rows[0].populationInMillions).toEqual(300)
     })
 })
@@ -72,21 +72,34 @@ canada,20`
         ])
     })
 
-    it("filtering works", () => {
+    describe("filtering", () => {
         const col = table.columnsBySlug.get("country")!
-        expect(col.values[3]).toEqual("canada")
-        table.addFilterColumn(
-            "pop_filter",
-            row => parseInt(row.population) > 40
-        )
-        expect(col?.values[0]).toEqual("france")
-        expect(col?.values[1]).toEqual("usa")
+        it("one filter works", () => {
+            expect(col.values[3]).toEqual("canada")
+            table.addFilterColumn(
+                "pop_filter",
+                row => parseInt(row.population) > 40
+            )
+            expect(col?.values[0]).toEqual("france")
+            expect(col?.values[1]).toEqual("usa")
+        })
 
-        table.addFilterColumn("name_filter", row =>
-            (row.country as string).startsWith("u")
-        )
-        expect(col?.values[0]).toEqual("usa")
-        expect(col?.values[1]).toEqual(undefined)
+        it("multiple filters work", () => {
+            table.addFilterColumn("name_filter", row =>
+                (row.country as string).startsWith("u")
+            )
+            expect(col?.values[0]).toEqual("usa")
+            expect(col?.values[1]).toEqual(undefined)
+        })
+
+        it("adding rows works with filters", () => {
+            table.addRowsAndDetectColumns([
+                { country: "ireland", population: "7" },
+                { country: "united kingdom", population: "60" }
+            ])
+            expect(col?.values[0]).toEqual("usa")
+            expect(col?.values[1]).toEqual("united kingdom")
+        })
     })
 })
 
@@ -104,10 +117,10 @@ describe("rolling averages", () => {
     it("a column can be added", () => {
         expect(table.rows.length).toEqual(1)
         expect(Array.from(table.columnsByName.keys()).length).toEqual(5)
-        table.addColumn(
-            { slug: "populationInMillions" },
-            row => row.population / 1000000
-        )
+        table.addComputedColumn({
+            slug: "populationInMillions",
+            fn: row => row.population / 1000000
+        })
         expect(table.rows[0].populationInMillions).toEqual(300)
         expect(Array.from(table.columnsByName.keys()).length).toEqual(6)
     })

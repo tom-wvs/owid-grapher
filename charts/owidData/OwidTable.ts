@@ -91,7 +91,12 @@ export interface ColumnSpec {
     annotationsColumnSlug?: columnSlug
 }
 
-export declare type RowBuilder = (row: Row, index?: int) => any
+// todo: remove index param?
+export declare type RowToValueMapper = (row: Row, index?: int) => any
+
+export interface ComputedColumnSpec extends ColumnSpec {
+    fn: RowToValueMapper
+}
 
 export abstract class AbstractColumn {
     spec: ColumnSpec
@@ -203,12 +208,12 @@ class EntityColumn extends AbstractColumn {}
 declare type ColumnSpecs = Map<columnSlug, ColumnSpec>
 
 abstract class AbstractTable<ROW_TYPE extends Row> {
-    rows: ROW_TYPE[]
+    @observable.ref rows: ROW_TYPE[]
     @observable protected columns: Map<columnSlug, AbstractColumn> = new Map()
 
     constructor(rows: ROW_TYPE[], columnSpecs?: ColumnSpecs) {
         this.rows = rows
-        if (!columnSpecs) this.detectAndAddColumnsFromRows()
+        if (!columnSpecs) this.detectAndAddColumnsFromRows(rows)
         else
             Array.from(columnSpecs.keys()).forEach(slug => {
                 this.columns.set(
@@ -218,10 +223,13 @@ abstract class AbstractTable<ROW_TYPE extends Row> {
             })
     }
 
-    protected detectAndAddColumnsFromRows() {
+    protected detectAndAddColumnsFromRows(rows: Row[]) {
         const specs = AbstractTable.makeSpecsFromRows(this.rows)
+        const cols = this.columns
         Array.from(specs.keys()).forEach(slug => {
-            this.columns.set(slug, new AnyColumn(this, specs.get(slug)!))
+            // At the moment do not overwrite existing columns
+            if (!cols.has(slug))
+                cols.set(slug, new AnyColumn(this, specs.get(slug)!))
         })
     }
 
@@ -244,31 +252,34 @@ abstract class AbstractTable<ROW_TYPE extends Row> {
         slug: columnSlug,
         predicate: (row: Row) => boolean
     ) {
-        return this._addColumn(
-            { slug, isFilterColumn: true },
-            predicate,
+        return this._addComputedColumn(
+            { slug, isFilterColumn: true, fn: predicate },
             BooleanColumn
         )
     }
 
-    private _addColumn(
-        spec: ColumnSpec,
-        rowFn?: RowBuilder,
+    private _addComputedColumn(
+        spec: ComputedColumnSpec,
         columnType = AnyColumn
     ) {
         const slug = spec.slug
         this.columns.set(slug, new columnType(this, spec))
-        if (rowFn)
-            this.rows.forEach((row, index) => {
-                ;(row as any)[slug] = rowFn(row, index)
-            })
+        const fn = spec.fn
+        this.rows.forEach((row, index) => {
+            ;(row as any)[slug] = fn(row, index)
+        })
+    }
+
+    @action.bound addColumnSpec(spec: ColumnSpec) {
+        this.columns.set(spec.slug, new AnyColumn(this, spec))
         return this
     }
 
-    @action.bound addColumn(spec: ColumnSpec, rowFn?: RowBuilder) {
-        return this._addColumn(spec, rowFn)
+    @action.bound addComputedColumn(spec: ComputedColumnSpec) {
+        return this._addComputedColumn(spec)
     }
 
+    // todo: this won't work when adding rows dynamically
     @action.bound addRollingAverageColumn(
         spec: ColumnSpec,
         windowSize: int,
@@ -283,10 +294,10 @@ abstract class AbstractTable<ROW_TYPE extends Row> {
             dateColName,
             windowSize
         )
-        this._addColumn(
-            spec,
-            (row, index) => (row[spec.slug] = averages[index!])
-        )
+        this._addComputedColumn({
+            ...spec,
+            fn: (row, index) => (row[spec.slug] = averages[index!])
+        })
     }
 
     @computed get columnsBySlug() {
@@ -306,15 +317,23 @@ abstract class AbstractTable<ROW_TYPE extends Row> {
     }
 
     @computed get unfilteredRows() {
-        const names = this.filterColumnNames
-        const filterFn = (row: Row) => names.every(name => row[name])
-        return names.length ? this.rows.filter(filterFn) : this.rows
+        const slugs = this.filterColumnSlugs
+        const filterFns = slugs.map(
+            slug =>
+                (this.columnsBySlug.get(slug)!.spec as ComputedColumnSpec).fn
+        )
+        const filterFn = (row: Row) =>
+            slugs.every((slug, index) => {
+                if (row[slug] === undefined) row[slug] = filterFns[index](row)
+                return row[slug]
+            })
+        return slugs.length ? this.rows.filter(filterFn) : this.rows
     }
 
-    @computed private get filterColumnNames() {
+    @computed private get filterColumnSlugs() {
         return this.columnsAsArray
             .filter(col => col.spec.isFilterColumn)
-            .map(col => col.name)
+            .map(col => col.slug)
     }
 
     @computed private get columnsAsArray() {
@@ -342,6 +361,12 @@ abstract class AbstractTable<ROW_TYPE extends Row> {
             .join("\n")
         return header + body
     }
+
+    @action.bound addRowsAndDetectColumns(rows: ROW_TYPE[]) {
+        this.rows = this.rows.concat(rows)
+        this.detectAndAddColumnsFromRows(rows)
+        return this
+    }
 }
 
 export class BasicTable extends AbstractTable<Row> {
@@ -357,12 +382,6 @@ export class OwidTable extends AbstractTable<OwidRow> {
             map.set(column.spec.owidVariableId ?? index, column)
         })
         return map
-    }
-
-    @action.bound addRowsAndDetectColumns(rows: OwidRow[]) {
-        this.rows = this.rows.concat(rows)
-        this.detectAndAddColumnsFromRows()
-        return this
     }
 
     @computed get availableEntities() {
