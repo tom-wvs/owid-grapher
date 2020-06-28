@@ -202,9 +202,11 @@ abstract class AbstractTable<ROW_TYPE extends Row> {
     @observable spec: TableSpec
     @observable protected columns: Map<columnSlug, AbstractColumn> = new Map()
 
-    constructor(rows: ROW_TYPE[], specs?: TableSpec) {
+    constructor(rows: ROW_TYPE[], specs: TableSpec = new Map()) {
         this.rows = rows
-        this.spec = specs ? specs : this.detectSpec()
+        this.spec = specs
+        if (specs.size === 0) this.detectSpec()
+        else this.initColumns()
     }
 
     setSpecAndInitColumn(slug: string, spec: ColumnSpec) {
@@ -254,12 +256,16 @@ abstract class AbstractTable<ROW_TYPE extends Row> {
         return map
     }
 
-    detectSpec() {
-        this.spec = AbstractTable.makeSpecsFromRows(this.rows)
+    private initColumns() {
         Array.from(this.spec.keys()).forEach(slug => {
             this.setSpecAndInitColumn(slug, this.spec.get(slug)!)
         })
-        return this.spec
+    }
+
+    // todo: improve api?
+    detectSpec() {
+        this.spec = AbstractTable.makeSpecsFromRows(this.rows)
+        this.initColumns()
     }
 
     static makeSpecsFromRows(rows: any[]): TableSpec {
