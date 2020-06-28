@@ -74,23 +74,6 @@ export class ChartData {
         )
     }
 
-    @computed get originUrl(): string {
-        let url = this.chart.props.originUrl || ""
-        if (!url.startsWith("http")) url = "https://" + url
-        return url
-    }
-
-    @computed get isSingleEntity(): boolean {
-        return (
-            this.chart.table.availableEntities.length === 1 ||
-            this.chart.addCountryMode === "change-country"
-        )
-    }
-
-    @computed private get isSingleVariable(): boolean {
-        return this.primaryDimensions.length === 1
-    }
-
     // Make a unique string key for an entity on a variable
     makeEntityDimensionKey(
         entityName: string,
@@ -284,12 +267,8 @@ export class ChartData {
         EntityDimensionInfo
     > {
         if (!this.isReady) return new Map()
-        const {
-            chart,
-            isSingleEntity,
-            isSingleVariable,
-            primaryDimensions
-        } = this
+        const { chart, primaryDimensions } = this
+        const { isSingleEntity, isSingleVariable } = chart
 
         const keyData = new Map<EntityDimensionKey, EntityDimensionInfo>()
         primaryDimensions.forEach((dimension, dimensionIndex) => {

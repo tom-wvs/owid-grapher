@@ -99,7 +99,7 @@ export class EditorTextTab extends React.Component<{ editor: ChartEditor }> {
                         label="Origin url"
                         field="originUrl"
                         store={chart.props}
-                        placeholder={chart.data.originUrl}
+                        placeholder={chart.originUrlWithProtocol}
                         helpText="The page containing this chart where more context can be found"
                     />
                     {references && references.length > 0 && (

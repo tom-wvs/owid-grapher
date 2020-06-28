@@ -552,6 +552,14 @@ export class ChartConfig {
     @computed get originUrl() {
         return defaultTo(this.props.originUrl, "")
     }
+
+    // todo: do we need this?
+    @computed get originUrlWithProtocol(): string {
+        let url = this.originUrl
+        if (!url.startsWith("http")) url = "https://" + url
+        return url
+    }
+
     @computed get isPublished() {
         return defaultTo(this.props.isPublished, false)
     }
@@ -780,6 +788,17 @@ export class ChartConfig {
         else if (this.isDiscreteBar && !this.discreteBar.failMessage)
             return this.discreteBar.targetYear
         else return this.lineChart.endYear
+    }
+
+    @computed get isSingleEntity(): boolean {
+        return (
+            this.table.availableEntities.length === 1 ||
+            this.addCountryMode === "change-country"
+        )
+    }
+
+    @computed private get isSingleVariable(): boolean {
+        return this.data.primaryDimensions.length === 1
     }
 
     // XXX refactor into the transforms

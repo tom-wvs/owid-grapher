@@ -572,7 +572,7 @@ export class Controls {
 
     @computed get addDataTerm() {
         const { chart } = this.props
-        return chart.data.isSingleEntity ? "data" : chart.entityType
+        return chart.isSingleEntity ? "data" : chart.entityType
     }
 
     @computed get addButtonLabel() {
