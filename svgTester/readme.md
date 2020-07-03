@@ -1,17 +1,13 @@
-# OWID SVG Tester
+# SVG Tester
 
-After every push to owid-grapher, all public charts are rebuilt.
+## What is it?
 
-Two things are stored:
+If you are making a code change and want to ensure you did not break anything across 3,000+ charts, you can use this tool to compare generated charts between two code bases. It also reports bake times for each chart to help with performance optimizations or to identify performance regressions.
 
-1. The MD5 hash of the resulting SVG is stored so we can then spot charts impacted by a code change.
-2. The bake time for each SVG to catch code changes that caused a performance regression.
+## How do I use it?
 
-## Setup
-
-Setup requires 3 things:
-
-1. Setting up a Grapher environment.
-2. Monitor for changes to owid-grapher.
-3. A place to store the results.
-
+1. Run the `run.ts` script on a staging server to bake your SVGs you want to compare against.
+2. Repeat step 1 on your local dev machine.
+3. Visit http://localhost:3030/admin/test/compareSvgs.
+4. Paste the results from both machines which should be in `svgTester/bakedSvgs/results.csv`.
+5. Submit.
