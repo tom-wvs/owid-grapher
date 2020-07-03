@@ -16,7 +16,7 @@ interface BakedSvgInfo {
     md5: string
 }
 
-const svgResultsPlaceholder = `${header}\b${sampleRow}\n`
+const svgResultsPlaceholder = `${header}\n${sampleRow}\n`
 const style = {
     width: 600,
     height: 300
@@ -48,9 +48,9 @@ export async function bakeAndSaveResultsFile(
 ) {
     if (!fs.existsSync(outDir)) fs.mkdirSync(outDir)
     const chartsBySlug = await getChartsBySlug()
-    const rows: BakedSvgInfo[] = []
     const resultsPath = outDir + "/results.csv"
     fs.writeFileSync(resultsPath, header + "\n")
+    console.log(header)
     let bakeOrder = 1
     for (const [slug, config] of chartsBySlug) {
         if (bakeOrder > bakeLimit) break
