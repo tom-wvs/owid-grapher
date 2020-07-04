@@ -1,6 +1,7 @@
 import * as fs from "fs-extra"
 import { csvParse } from "d3-dsv"
 import md5 from "md5"
+import { BAKED_GRAPHER_URL } from "settings"
 import React from "react"
 import {
     bakeChartToImage,
@@ -91,8 +92,8 @@ const compareSets = (liveSvgs: BakedSvgInfo[], localSvgs: BakedSvgInfo[]) => {
             }
 
         const changed = liveSvg.md5 !== localSvg.md5
-        const devInteractiveUrl = `/grapher/${slug}`
-        const devSvgPath = `/grapher/exports/${slug}.svg`
+        const devInteractiveUrl = `${BAKED_GRAPHER_URL}/${slug}`
+        const devSvgPath = `${BAKED_GRAPHER_URL}/exports/${slug}.svg`
         const liveInteractiveUrl = `https://ourworldindata.org/grapher/${slug}`
         const liveSvgUrl = `https://ourworldindata.org/grapher/exports/${slug}.svg`
         return {
