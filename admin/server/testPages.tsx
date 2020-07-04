@@ -12,11 +12,7 @@ import { ADMIN_BASE_URL, BAKED_GRAPHER_URL, BAKED_BASE_URL } from "settings"
 import * as querystring from "querystring"
 import * as _ from "lodash"
 import * as url from "url"
-import {
-    getComparePage,
-    svgResultsPlaceholder,
-    svgCompareFormPage
-} from "svgTester/SVGTester"
+import { getComparePage, svgCompareFormPage } from "svgTester/SVGTester"
 
 const IS_LIVE = ADMIN_BASE_URL === "https://owid.cloud"
 
