@@ -70,7 +70,7 @@ export class Dataset extends BaseEntity {
                 if (row.length) {
                     stream.write(csvRow(row))
                 }
-                row = [datum.entity, datum.year]
+                row = [datum.entity, parseInt(datum.year)]
                 for (const variable of variables) {
                     row.push("")
                 }

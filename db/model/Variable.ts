@@ -81,7 +81,7 @@ export async function getVariableData(variableIds: number[]): Promise<any> {
 
     for (const row of results) {
         const variable = data.variables[row.variableId]
-        variable.years.push(row.year)
+        variable.years.push(parseInt(row.year))
         variable.entities.push(row.entityId)
 
         const asNumber = parseFloat(row.value)
@@ -117,7 +117,7 @@ export async function writeVariableCSV(
         {
             variableId: number
             entity: string
-            year: number
+            year: string
             value: string
         }[]
     > = db.query(
@@ -172,7 +172,7 @@ export async function writeVariableCSV(
             if (row.length) {
                 stream.write(csvRow(row))
             }
-            row = [datum.entity, datum.year]
+            row = [datum.entity, parseInt(datum.year)]
             for (const variable of variables) {
                 row.push("")
             }
