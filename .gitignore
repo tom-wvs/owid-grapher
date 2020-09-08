@@ -22,3 +22,9 @@ coverage/
 public/head.txt
 public/covidChartAndVariableMeta.json
 .storybook/build
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+.pnp.*
