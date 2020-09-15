@@ -11,7 +11,8 @@ import cookieParser from "cookie-parser"
 const expressErrorSlack = require("express-error-slack")
 import "reflect-metadata"
 import { IndexPage } from "./pages/IndexPage"
-import { authMiddleware } from "./utils/authentication"
+// import { authMiddleware } from "./utils/authentication"
+import authMiddlewareAuth0 from "./utils/authenticationAuth0"
 import { apiRouter } from "./apiRouter"
 import { testPageRouter } from "./testPageRouter"
 import { adminRouter } from "./adminRouter"
@@ -21,6 +22,9 @@ import { SLACK_ERRORS_WEBHOOK_URL } from "serverSettings"
 import * as React from "react"
 import { publicApiRouter } from "./publicApiRouter"
 import { mockSiteRouter } from "./mockSiteRouter"
+import session from "express-session"
+import passport from "passport"
+const Auth0Strategy = require("passport-auth0")
 
 const app = express()
 
@@ -30,12 +34,71 @@ const app = express()
 app.set("trust proxy", true)
 
 // Parse cookies https://github.com/expressjs/cookie-parser
-app.use(cookieParser())
+// app.use(cookieParser())
 
 app.use(express.urlencoded({ extended: true, limit: "50mb" }))
 
+// Configure Passport to use Auth0
+var strategy = new Auth0Strategy(
+    {
+        domain: process.env.AUTH0_DOMAIN,
+        clientID: process.env.AUTH0_CLIENT_ID,
+        clientSecret: process.env.AUTH0_CLIENT_SECRET,
+        callbackURL:
+            process.env.AUTH0_CALLBACK_URL || "http://localhost:3030/callback",
+    },
+    function (
+        accessToken: any,
+        refreshToken: any,
+        extraParams: any,
+        profile: any,
+        done: (arg0: null, arg1: any) => any
+    ) {
+        // accessToken is the token to call Auth0 API (not needed in the most cases)
+        // extraParams.id_token has the JSON Web Token
+        // profile has all the information from the user
+        return done(null, profile)
+    }
+)
+
+passport.use(strategy)
+
+// You can use this section to keep a smaller payload
+// TOOD do not store the whole user object in the session
+passport.serializeUser(function (user, done) {
+    done(null, user)
+})
+
+passport.deserializeUser(function (user, done) {
+    done(null, user)
+})
+
+// config express-session
+var sess = {
+    secret: "CHANGE THIS TO A RANDOM SECRET",
+    cookie: {} as any,
+    resave: false,
+    saveUninitialized: true,
+}
+
+if (app.get("env") === "production") {
+    // Use secure cookies in production (requires SSL/TLS)
+    sess.cookie.secure = true
+
+    // Uncomment the line below if your application is behind a proxy (like on Heroku)
+    // or if you're encountering the error message:
+    // "Unable to verify authorization request state"
+    // app.set('trust proxy', 1);
+}
+
+app.use(session(sess))
+app.use(passport.initialize())
+app.use(passport.session())
+
+app.use(authMiddlewareAuth0)
+
 // Require authentication (only for /admin requests)
-app.use(authMiddleware)
+// app.use(authMiddleware)
 
 //app.use(express.urlencoded())
 
