@@ -44,6 +44,7 @@ import sumBy from "lodash/sumBy"
 import takeWhile from "lodash/takeWhile"
 import throttle from "lodash/throttle"
 import toArray from "lodash/toArray"
+import toInteger from "lodash/toInteger"
 import toString from "lodash/toString"
 import union from "lodash/union"
 import uniq from "lodash/uniq"
@@ -97,6 +98,7 @@ export {
     takeWhile,
     throttle,
     toArray,
+    toInteger,
     toString,
     union,
     uniq,
