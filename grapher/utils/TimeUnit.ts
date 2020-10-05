@@ -37,7 +37,7 @@ export function add(time: TimeUnit, amount: number): TimeUnit {
                 quarter: newQuarter + 1,
             }
         case "day":
-            const date = moment({
+            const date = moment.utc({
                 day: time.day,
                 month: time.month - 1,
                 year: time.year,
