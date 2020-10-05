@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from "typeorm"
 
-export class ChartYearToTimeUnit21601909631346 implements MigrationInterface {
+export class ChartYearToTimeUnit1601909631346 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<any> {
         await queryRunner.query(
             `
