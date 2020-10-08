@@ -2,15 +2,25 @@ import { MigrationInterface, QueryRunner } from "typeorm"
 
 export class ChartYearToTimeUnit1601909631346 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<any> {
+        // Rename data_values.year (INT) -> data_values.time (VARCHAR)
+        await queryRunner.query(
+            `
+            ALTER TABLE data_values
+            CHANGE year time VARCHAR(255) NOT NULL
+            `
+        )
+
+        // Convert numeric dates to a date string, e.g. 2 -> 2020-01-23
         await queryRunner.query(
             `
             UPDATE data_values
             JOIN variables v on data_values.variableId = v.id
-            SET year = DATE_ADD(COALESCE(display->>"$.zeroDay", '2020-01-21'), INTERVAL year DAY)
+            SET time = DATE_ADD(COALESCE(display->>"$.zeroDay", '2020-01-21'), INTERVAL time DAY)
             WHERE JSON_EXTRACT(display, "$.yearIsDay") IS TRUE
             `
         )
 
+        // Add a proper timeUnit (day/year) to the display config of every variable
         await queryRunner.query(
             `
             UPDATE variables
@@ -26,6 +36,7 @@ export class ChartYearToTimeUnit1601909631346 implements MigrationInterface {
             `
         )
 
+        // Drop the yearIsDay and zeroDay fields from the variable display config
         await queryRunner.query(
             `
             UPDATE variables
@@ -35,6 +46,6 @@ export class ChartYearToTimeUnit1601909631346 implements MigrationInterface {
     }
 
     public async down(queryRunner: QueryRunner): Promise<any> {
-        // TODO
+        // There's no going back!
     }
 }
