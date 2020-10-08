@@ -1,6 +1,6 @@
 import { MigrationInterface, QueryRunner } from "typeorm"
 
-export class ChartYearToTimeUnit1601909631346 implements MigrationInterface {
+export class ChartYearToTimeUnit1602158086346 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<any> {
         // Rename data_values.year (INT) -> data_values.time (VARCHAR)
         await queryRunner.query(
