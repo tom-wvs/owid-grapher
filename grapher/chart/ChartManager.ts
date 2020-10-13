@@ -1,5 +1,4 @@
 import { AxisConfig } from "grapher/axis/AxisConfig"
-import { ColorScaleConfigInterface } from "grapher/color/ColorScaleConfig"
 import {
     EntitySelectionMode,
     FacetStrategy,
@@ -10,6 +9,7 @@ import { TooltipProps } from "grapher/tooltip/TooltipProps"
 import { OwidTable } from "coreTable/OwidTable"
 import { ColumnSlug } from "coreTable/CoreTableConstants"
 import { AxisConfigInterface } from "grapher/axis/AxisConfigInterface"
+import { ColorScale } from "grapher/color/ColorScale"
 
 // The possible options common across our chart types. Not all of these apply to every chart type, so there is room to create a better type hierarchy.
 
@@ -30,7 +30,7 @@ export interface ChartManager {
     zoomToSelection?: boolean
     matchingEntitiesOnly?: boolean
 
-    colorScale?: ColorScaleConfigInterface
+    colorScale?: ColorScale
 
     yAxis?: AxisConfig // Remove? Just pass interfaces?
     xAxis?: AxisConfig

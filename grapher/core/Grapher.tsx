@@ -147,6 +147,7 @@ import {
 import { OwidTable } from "coreTable/OwidTable"
 import * as Mousetrap from "mousetrap"
 import { SlideShowController } from "grapher/slideshowController/SlideShowController"
+import { ColorScale } from "grapher/color/ColorScale"
 
 declare const window: any
 
@@ -250,7 +251,11 @@ export class Grapher
 
     @observable.ref xAxis = new AxisConfig(undefined, this)
     @observable.ref yAxis = new AxisConfig(undefined, this)
-    @observable colorScale = new ColorScaleConfig()
+	@observable colorScale = new ColorScale({
+        hasNoDataBin: false,
+        categoricalValues: [],
+        colorScaleConfig: new ColorScaleConfig(),
+    })
     @observable map = new MapConfig()
     @observable.ref dimensions: ChartDimension[] = []
 
@@ -1086,7 +1091,7 @@ export class Grapher
     }
 
     @computed get activeColorScale() {
-        return this.colorScale as any // todo: restore
+        return this.colorScale // todo: restore - ?
     }
 
     @computed get supportsMultipleYColumns() {

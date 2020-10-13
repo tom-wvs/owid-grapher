@@ -14,11 +14,11 @@ import { LegacyChartDimensionInterface } from "coreTable/LegacyVariableCode"
 import { TimeBound } from "grapher/utils/TimeBounds"
 import { ComparisonLineConfig } from "grapher/scatterCharts/ComparisonLine"
 import { LogoOption } from "grapher/captionedChart/Logos"
-import { ColorScaleConfigInterface } from "grapher/color/ColorScaleConfig"
 import { MapConfigInterface } from "grapher/mapCharts/MapConfig"
 import { Time } from "coreTable/CoreTableConstants"
 import { omit } from "grapher/utils/Util"
 import { EntityId, EntityName } from "coreTable/OwidTableConstants"
+import { ColorScale } from "grapher/color/ColorScale"
 
 // This configuration represents the entire persistent state of a grapher
 // Ideally, this is also all of the interaction state: when a grapher is saved and loaded again
@@ -76,7 +76,7 @@ export interface GrapherInterface {
 
     xAxis?: Partial<AxisConfigInterface>
     yAxis?: Partial<AxisConfigInterface>
-    colorScale?: Partial<ColorScaleConfigInterface>
+    colorScale?: ColorScale
     map?: Partial<MapConfigInterface>
 }
 
