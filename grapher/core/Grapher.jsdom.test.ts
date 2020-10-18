@@ -164,6 +164,18 @@ it("can show the year of the selected data in the title", () => {
     expect(grapher.currentTitle).not.toContain("Infinity")
 })
 
+describe("authors can use maxTime", () => {
+    it("can can create a discretebar chart with correct maxtime", () => {
+        const grapher = new Grapher({
+            table: SynthesizeGDPTable({ timeRange: [2000, 2010] }).selectAll(),
+            type: ChartTypeName.DiscreteBar,
+            maxTime: 2005,
+        })
+        const chart = grapher.chartInstance
+        expect(chart.failMessage).toBeFalsy()
+    })
+})
+
 describe("line chart to bar chart and bar chart race", () => {
     const grapher = new Grapher(TestGrapherConfig())
 

@@ -26,7 +26,7 @@ test("can create a new Map chart", () => {
     expect(Object.keys(legends).length).toBeGreaterThan(1)
 })
 
-it("times work with a map chart", () => {
+it("map time tolerance plus query string works with a map chart", () => {
     const grapher = new Grapher(legacyMapGrapher)
     expect(grapher.mapColumnSlug).toBe("3512")
     expect(grapher.inputTable.minTime).toBe(2000)
