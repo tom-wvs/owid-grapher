@@ -49,7 +49,7 @@ export class ExplorerControlPanel extends React.Component<{
     options: ExplorerControlOption[]
     type: ExplorerControlType
     comment?: string
-    onChange: (value: string) => void
+    onChange: (value: string, originalValue?: string) => void // hacky
     hideTitle?: boolean
 }> {
     private renderCheckboxOrRadio(
@@ -75,7 +75,9 @@ export class ExplorerControlPanel extends React.Component<{
                     data-track-note={`${explorerSlug}-click-${title.toLowerCase()}`}
                 >
                     <input
-                        onChange={() => this.props.onChange(onChangeValue)}
+                        onChange={() =>
+                            this.props.onChange(onChangeValue, option.value)
+                        }
                         type={isCheckbox ? "checkbox" : "radio"}
                         disabled={!option.available}
                         name={name}

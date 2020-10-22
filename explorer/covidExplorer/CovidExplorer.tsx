@@ -55,6 +55,7 @@ import {
 import {
     ChartTypeName,
     DimensionProperty,
+    FacetStrategy,
     ScaleType,
 } from "grapher/core/GrapherConstants"
 import { LegacyChartDimensionInterface } from "coreTable/LegacyVariableCode"
@@ -213,7 +214,7 @@ export class CovidExplorer
                 name={this.getScopedName("metric")}
                 options={options}
                 onChange={this.changeMetric}
-                type={ExplorerControlType.Radio}
+                type={ExplorerControlType.Checkbox}
             />,
             <ExplorerControlPanel
                 key="metric2"
@@ -223,13 +224,13 @@ export class CovidExplorer
                 name={this.getScopedName("metric")}
                 onChange={this.changeMetric}
                 options={optionsColumn2}
-                type={ExplorerControlType.Radio}
+                type={ExplorerControlType.Checkbox}
             />,
         ]
     }
 
-    @action.bound private changeMetric(metric: string) {
-        this.props.params.setMetric(metric as MetricOptions)
+    @action.bound private changeMetric(newValue: string, metric?: string) {
+        this.props.params.toggleMetric(metric as MetricOptions)
         this.renderControlsThenUpdateGrapher()
     }
 
@@ -450,9 +451,6 @@ export class CovidExplorer
         const params = this.constrainedParams
         const interval = params.interval
 
-        if (params.yColumn || params.xColumn)
-            return startCase(`${this.yColumn.name} by ${this.xColumn?.name}`)
-
         const isCumulative = interval === IntervalOptions.total
         const freq = params.intervalTitle
         if (params.cfrMetric)
@@ -493,21 +491,18 @@ export class CovidExplorer
 
     @computed private get subtitle() {
         const params = this.constrainedParams
-        if (params.yColumn || params.xColumn) return ""
-
         if (params.isWeekly || params.isBiweekly) return this.weekSubtitle
 
         const smoothing = params.smoothing
             ? `Shown is the rolling ${params.smoothing}-day average. `
             : ""
-        return `${smoothing}${this.yColumn?.description || ""}`
+        return `${smoothing}${
+            this.yColumns.map((col) => col.def.description).join(" ") || ""
+        }`
     }
 
     @computed private get note() {
         const params = this.constrainedParams
-
-        if (params.yColumn || params.xColumn) return ""
-
         if (params.testsMetric)
             return "For testing figures, there are substantial differences across countries in terms of the units, whether or not all labs are included, the extent to which negative and pending tests are included and other aspects. Details for each country can be found on ourworldindata.org/covid-testing."
         return ""
@@ -573,7 +568,11 @@ export class CovidExplorer
         }
 
         // Add user selected columns
-        table.makeColumnDefsFromParams(params).forEach((def) => defs.push(def))
+        this.props.params.constrainedParamsForEachMetric.forEach((params) => {
+            table
+                .makeColumnDefsFromParams(params)
+                .forEach((def) => defs.push(def))
+        })
 
         // Add columns for datatable
         if (params.tableMetrics)
@@ -613,7 +612,7 @@ export class CovidExplorer
             !params.intervalChange
 
         if (shouldFilterNegatives)
-            table = table.filterNegatives(params.yColumnSlug)
+            table = table.filterNegatives(params.yColumnSlugs[0])
         if (shouldFilterGroups) table = table.filterGroups()
         return table
     }
@@ -708,10 +707,13 @@ export class CovidExplorer
     }
 
     @computed private get yColumn() {
-        const slug = this.constrainedParams.yColumnSlug
-        const col = this.expandedTable.get(slug)!
-        if (!col) debugger
-        return col
+        return this.yColumns[0]
+    }
+
+    @computed private get yColumns() {
+        return this.expandedTable
+            .getColumns(this.constrainedParams.yColumnSlugs)
+            .filter(isPresent)
     }
 
     @computed private get xColumn() {
@@ -726,16 +728,17 @@ export class CovidExplorer
             : undefined
     }
 
-    @computed private get yDimension(): LegacyChartDimensionInterface {
-        const yColumn = this.yColumn
-        return {
-            property: DimensionProperty.y,
-            slug: yColumn.slug,
-            variableId: 0,
-            display: {
-                tolerance: yColumn.def.display?.tolerance ?? 10,
-            },
-        }
+    @computed private get yDimensions(): LegacyChartDimensionInterface[] {
+        return this.yColumns.map((col, index) => {
+            return {
+                property: DimensionProperty.y,
+                slug: col.slug,
+                variableId: index,
+                display: {
+                    tolerance: col.def.display?.tolerance ?? 10,
+                },
+            }
+        })
     }
 
     @computed private get xDimension(): LegacyChartDimensionInterface {
@@ -749,9 +752,9 @@ export class CovidExplorer
 
     @computed private get legacyDimensions(): LegacyChartDimensionInterface[] {
         if (this.constrainedParams.type !== ChartTypeName.ScatterPlot)
-            return [this.yDimension]
+            return this.yDimensions
 
-        const dimensions = [this.yDimension, this.xDimension]
+        const dimensions = [...this.yDimensions, this.xDimension]
 
         if (this.constrainedParams.colorStrategy !== ColorScaleOptions.none)
             dimensions.push(this.colorDimension)
@@ -837,12 +840,6 @@ export class CovidExplorer
         }
     }
 
-    @computed private get yAxisLabel() {
-        return this.constrainedParams.yColumn
-            ? this.constrainedParams.yColumnSlug
-            : ""
-    }
-
     @observable.ref grapher = new Grapher()
 
     @action.bound setSlide(queryString: string) {
@@ -870,7 +867,7 @@ export class CovidExplorer
             grapher.zoomToSelection = true
 
         grapher.type = params.type
-        grapher.yAxis.label = this.yAxisLabel
+        grapher.yAxis.label = ""
 
         if (!this.canDoLogScale) {
             this.switchBackToLog = grapher.yAxis.scaleType === ScaleType.log
@@ -887,6 +884,9 @@ export class CovidExplorer
         grapher.inputTable = filteredTable
         grapher.yAxis.min = params.intervalChange ? undefined : 0
         grapher.setDimensionsFromConfigs(this.legacyDimensions)
+
+        if (this.constrainedParams.yColumnSlugs.length > 1 && !grapher.facet)
+            grapher.facet = FacetStrategy.column
 
         this.updateMapSettings()
 

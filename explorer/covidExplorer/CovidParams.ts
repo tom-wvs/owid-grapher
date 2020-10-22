@@ -55,7 +55,6 @@ export class CovidQueryParams implements CountryPickerManager {
     @observable deathsMetric = false
     @observable cfrMetric = false
 
-    @observable yColumn?: string
     @observable xColumn?: string
     @observable sizeColumn?: string
     @observable chartType?: ChartTypeName
@@ -132,7 +131,6 @@ export class CovidQueryParams implements CountryPickerManager {
             if (sort) this.countryPickerSort = sort
         }
 
-        this.yColumn = params.yColumn
         this.xColumn = params.xColumn
         this.sizeColumn = params.sizeColumn
         this.colorScale = params.colorScale as ColorScaleOptions
@@ -148,13 +146,19 @@ export class CovidQueryParams implements CountryPickerManager {
         )
     }
 
+    @computed get metricNames(): MetricOptions[] {
+        const names = []
+        if (this.testsMetric) names.push(MetricOptions.tests)
+        if (this.casesMetric) names.push(MetricOptions.cases)
+        if (this.deathsMetric) names.push(MetricOptions.deaths)
+        if (this.cfrMetric) names.push(MetricOptions.case_fatality_rate)
+        if (this.testsPerCaseMetric) names.push(MetricOptions.tests_per_case)
+        if (this.positiveTestRate) names.push(MetricOptions.positive_test_rate)
+        return names
+    }
+
     @computed get metricName(): MetricOptions {
-        if (this.testsMetric) return MetricOptions.tests
-        if (this.casesMetric) return MetricOptions.cases
-        if (this.deathsMetric) return MetricOptions.deaths
-        if (this.cfrMetric) return MetricOptions.case_fatality_rate
-        if (this.testsPerCaseMetric) return MetricOptions.tests_per_case
-        return MetricOptions.positive_test_rate
+        return this.metricNames[0]
     }
 
     @computed get intervalTitle() {
@@ -173,7 +177,6 @@ export class CovidQueryParams implements CountryPickerManager {
     @computed get toQueryParams(): QueryParams {
         const params: any = {}
         params.xColumn = this.xColumn ? this.xColumn : undefined
-        params.yColumn = this.yColumn ? this.yColumn : undefined
         params.sizeColumn = this.sizeColumn ? this.sizeColumn : undefined
         params.chartType = this.chartType ? this.chartType : undefined
         params.testsMetric = this.testsMetric ? true : undefined
@@ -223,13 +226,14 @@ export class CovidQueryParams implements CountryPickerManager {
         return ColorScaleOptions.continents
     }
 
-    @computed get yColumnSlug() {
-        if (this.yColumn) return this.yColumn
-        return buildColumnSlugFromParams(
-            this.metricName,
-            this.perCapitaAdjustment,
-            this.interval,
-            this.smoothing
+    @computed get yColumnSlugs() {
+        return this.constrainedParamsForEachMetric.map((params) =>
+            buildColumnSlugFromParams(
+                params.metricName,
+                params.perCapitaAdjustment,
+                params.interval,
+                params.smoothing
+            )
         )
     }
 
@@ -276,6 +280,14 @@ export class CovidQueryParams implements CountryPickerManager {
         return this.toConstrainedParams()
     }
 
+    @computed get constrainedParamsForEachMetric() {
+        return this.metricNames.map((metric) => {
+            const params = new CovidQueryParams(this.toString())
+            params.setMetric(metric)
+            return params.toConstrainedParams()
+        })
+    }
+
     toConstrainedParams() {
         return new CovidConstrainedQueryParams(this.toString())
     }
@@ -287,6 +299,19 @@ export class CovidQueryParams implements CountryPickerManager {
         this.cfrMetric = option === MetricOptions.case_fatality_rate
         this.testsPerCaseMetric = option === MetricOptions.tests_per_case
         this.positiveTestRate = option === MetricOptions.positive_test_rate
+    }
+
+    toggleMetric(option: MetricOptions) {
+        if (option === MetricOptions.cases) this.casesMetric = !this.casesMetric
+        if (option === MetricOptions.tests) this.testsMetric = !this.testsMetric
+        if (option === MetricOptions.case_fatality_rate)
+            this.cfrMetric = !this.cfrMetric
+        if (option === MetricOptions.tests_per_case)
+            this.testsPerCaseMetric = !this.testsPerCaseMetric
+        if (option === MetricOptions.positive_test_rate)
+            this.positiveTestRate = !this.positiveTestRate
+        if (option === MetricOptions.deaths)
+            this.deathsMetric = !this.deathsMetric
     }
 
     setTimeline(option: IntervalOptions) {
