@@ -8,18 +8,15 @@ import {
     memoize,
     minBy,
     retryPromise,
-    sortBy,
 } from "grapher/utils/Util"
 import moment from "moment"
 import {
     covidChartAndVariableMetaPath,
     covidDataPath,
-    CovidRow,
     covidLastUpdatedPath,
     MetricOptions,
 } from "./CovidConstants"
 import { CoreRow, Time } from "coreTable/CoreTableConstants"
-import { EntityName } from "coreTable/OwidTableConstants"
 import { InvalidCell, InvalidCellTypes } from "coreTable/InvalidCells"
 
 const dateToTimeCache = new Map<string, Time>() // Cache for performance
@@ -64,54 +61,6 @@ export const euCountries = new Set([
     "Spain",
     "Sweden",
 ])
-
-// Todo: this is just a group with reductions. Should be able to move it to mostly CoreTable ops.
-export const calculateCovidRowsForGroup = (
-    rows: CovidRow[],
-    entityName: EntityName
-) => {
-    const rowsByTime = new Map<Time, CovidRow>()
-    const sortedRows = sortBy(rows, (row) => row.time) // We need to resort because rows are sorted by entityName first.
-    const groupMembers = new Set()
-    sortedRows.forEach((row) => {
-        const { date, continent, time } = row
-        groupMembers.add(row.iso_code)
-        if (!rowsByTime.has(time))
-            rowsByTime.set(time, {
-                entityName,
-                continent,
-                entityCode: entityName.replace(" ", ""),
-                entityId: 0, // todo: remove this as a required Owid column?
-                date,
-                time,
-                new_cases: 0,
-                new_deaths: 0,
-                population: 0,
-            } as CovidRow)
-        const newRow = rowsByTime.get(time)!
-        newRow.population += row.population
-        if (typeof row.new_cases === "number") newRow.new_cases += row.new_cases
-        if (typeof row.new_deaths === "number")
-            newRow.new_deaths += row.new_deaths
-    })
-    const newRowsForGroup = Array.from(rowsByTime.values())
-    let total_cases = 0
-    let total_deaths = 0
-    let maxPopulation = 0
-    // We need to compute cumulatives again because sometimes data will stop for a country.
-    newRowsForGroup.forEach((row) => {
-        total_cases += row.new_cases
-        total_deaths += row.new_deaths
-        row.total_cases = total_cases
-        row.total_deaths = total_deaths
-        if (row.population > maxPopulation) maxPopulation = row.population
-
-        // Once we add a country to a group, we assume we will always have data for that country, so even if the
-        // country is late in reporting the data keep that country in the population count.
-        row.population = maxPopulation
-    })
-    return newRowsForGroup
-}
 
 // Todo: replace with someone else's library
 export const computeRollingAveragesForEachGroup = (
