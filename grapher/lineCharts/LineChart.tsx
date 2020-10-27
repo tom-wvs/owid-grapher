@@ -632,7 +632,11 @@ export class LineChart
             )
         )
 
-        this._addColorsToSeries(arrOfSeries)
+        this.colorScheme.assignColors(
+            arrOfSeries,
+            this.manager.invertColorScheme,
+            this.inputTable.entityNameColorIndex
+        )
         return arrOfSeries
     }
 
@@ -655,21 +659,6 @@ export class LineChart
                         )
                 ),
             }
-        })
-    }
-
-    private _addColorsToSeries(allSeries: LineChartSeries[]) {
-        // Color from lowest to highest
-        const sorted = sortBy(allSeries, (series) => last(series.points)!.y)
-
-        const colors = this.colorScheme.getColors(sorted.length)
-        if (this.manager.invertColorScheme) colors.reverse()
-
-        const table = this.inputTable
-
-        sorted.forEach((series, i) => {
-            series.color =
-                table.getColorForEntityName(series.seriesName) ?? colors[i]
         })
     }
 

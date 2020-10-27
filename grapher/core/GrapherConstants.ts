@@ -1,3 +1,5 @@
+import { Color } from "coreTable/CoreTableConstants"
+
 export enum ChartTypeName {
     LineChart = "LineChart",
     ScatterPlot = "ScatterPlot",
@@ -106,6 +108,11 @@ export interface EntitySelection {
 }
 
 export type SeriesName = string
+
+export interface ColoredSeries {
+    seriesName: SeriesName
+    color: Color
+}
 
 export interface Box {
     x: number

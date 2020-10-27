@@ -1,5 +1,6 @@
 import { Color } from "coreTable/CoreTableConstants"
 import { rgb, interpolate } from "d3"
+import { ColoredSeries, SeriesName } from "grapher/core/GrapherConstants"
 import { lastOfNonEmptyArray, clone } from "grapher/utils/Util"
 import { ColorSchemeInterface } from "./ColorConstants"
 import { interpolateArray } from "./ColorUtils"
@@ -110,6 +111,24 @@ export class ColorScheme implements ColorSchemeInterface {
             colorByValue.set(value, colors[index])
         )
         return colorByValue
+    }
+
+    assignColors(
+        seriesArr: ColoredSeries[],
+        invertColorScheme = false,
+        customColorMap: Map<SeriesName, Color> = new Map()
+    ) {
+        const colors = this.getColors(seriesArr.length)
+        if (invertColorScheme) colors.reverse()
+        let assignedIndex = 0
+        seriesArr.forEach((series) => {
+            const customColor = customColorMap.get(series.seriesName)
+            if (customColor) series.color = customColor
+            else {
+                series.color = colors[assignedIndex]
+                assignedIndex++
+            }
+        })
     }
 
     static fromObject(
