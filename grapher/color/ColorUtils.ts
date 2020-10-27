@@ -1,3 +1,4 @@
+import { Color } from "coreTable/CoreTableConstants"
 import { rgb } from "d3-color"
 import { interpolate } from "d3-interpolate"
 import { difference, groupBy, minBy } from "grapher/utils/Util"
@@ -23,8 +24,8 @@ export const interpolateArray = (scaleArr: string[]) => {
 }
 
 export function getLeastUsedColor(
-    availableColors: string[],
-    usedColors: string[]
+    availableColors: Color[],
+    usedColors: Color[]
 ) {
     // If there are unused colors, return the first available
     const unusedColors = difference(availableColors, usedColors)

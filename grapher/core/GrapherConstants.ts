@@ -47,6 +47,8 @@ export enum SeriesStrategy {
 
 export const ThereWasAProblemLoadingThisChart = `There was a problem loading this chart`
 
+export type SeriesColorMap = Map<SeriesName, Color>
+
 export enum GrapherTabOption {
     chart = "chart",
     map = "map",
@@ -108,11 +110,6 @@ export interface EntitySelection {
 }
 
 export type SeriesName = string
-
-export interface ColoredSeries {
-    seriesName: SeriesName
-    color: Color
-}
 
 export interface Box {
     x: number
