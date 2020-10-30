@@ -9,6 +9,7 @@ import {
 import { ScaleType } from "grapher/core/GrapherConstants"
 import { Bounds } from "grapher/utils/Bounds"
 import { makeAnnotationsSlug } from "coreTable/LegacyToOwidTable"
+import { CoreColumnStore } from "coreTable/CoreTableConstants"
 
 export default {
     title: "LineChart",
@@ -104,7 +105,8 @@ export const WithAnnotations = () => {
         .appendColumns([
             {
                 slug: makeAnnotationsSlug(SampleColumnSlugs.GDP),
-                fn: (row) => `${row.entityName} is a country`,
+                fn: (columnStore: CoreColumnStore, rowIndex: number) =>
+                    `${columnStore.entityName[rowIndex]} is a country`,
             },
         ])
     return (

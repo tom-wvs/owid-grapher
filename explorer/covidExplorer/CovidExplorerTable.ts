@@ -8,6 +8,8 @@ import {
     CoreRow,
     ColumnFn,
     CoreColumnDef,
+    CoreColumnStore,
+    RowFn,
 } from "coreTable/CoreTableConstants"
 import {
     allAvailableQueryStringCombos,
@@ -90,10 +92,7 @@ export class CovidExplorerTable extends OwidTable {
         })
     }
 
-    private makeColumnDef(
-        params: CovidConstrainedQueryParams,
-        rowFn: ColumnFn
-    ) {
+    private makeColumnDef(params: CovidConstrainedQueryParams, rowFn: RowFn) {
         const def = makeColumnDefFromParams(params, this.columnDefTemplates)
         const { metricName, perCapitaAdjustment, smoothing } = params
 
@@ -124,7 +123,8 @@ export class CovidExplorerTable extends OwidTable {
                 params.isWeekly || params.isBiweekly,
                 params.intervalChange !== undefined
             )
-        def.fn = rowFn
+        def.rowFn = rowFn
+        def.fn = true as any // Todo: delete rowFn above and switch to column fns
         return def
     }
 
@@ -149,7 +149,7 @@ export class CovidExplorerTable extends OwidTable {
     ) {
         let averages: (number | InvalidCell)[]
 
-        def.fn = (row, index) => {
+        def.fn = (columnStore: CoreColumnStore, rowIndex: number) => {
             if (!averages)
                 averages = computeRollingAveragesForEachGroup(
                     this.rows,
@@ -158,12 +158,12 @@ export class CovidExplorerTable extends OwidTable {
                     OwidTableSlugs.time,
                     windowSize
                 )
-            const val = averages[index!]
+            const val = averages[rowIndex!]
             if (!convertToPercentChangeOverWindow)
                 return val instanceof InvalidCell
                     ? val
                     : val * (multiplyByWindowSize ? windowSize : 1)
-            const previousValue = averages[index! - windowSize]
+            const previousValue = averages[rowIndex! - windowSize]
             return previousValue instanceof InvalidCell ||
                 previousValue === undefined ||
                 previousValue === 0 ||
@@ -447,22 +447,27 @@ export class CovidExplorerTable extends OwidTable {
         threshold: number,
         title: string
     ): OwidColumnDef {
-        let currentCountry: number
+        let currentCountry: string
         let countryExceededThresholdOnDay: number
         return {
             ...this.columnDefTemplates.days_since,
             name: title,
             slug,
-            fn: (row) => {
+            fn: (columnStore: CoreColumnStore, rowIndex: number) => {
                 // NB: This assumes rows sorted by country then time. Would be better to do that more explicitly.
-                if (row.entityName !== currentCountry) {
-                    const sourceValue = row[sourceColumnSlug]
+                const entityName = columnStore.entityName[rowIndex] as string
+                const time = columnStore[OwidTableSlugs.time][
+                    rowIndex
+                ] as number
+                const sourceColumn = columnStore[sourceColumnSlug]
+                if (entityName !== currentCountry) {
+                    const sourceValue = sourceColumn[rowIndex]
                     if (sourceValue === undefined || sourceValue < threshold)
                         return CovidCellTypes.UnableToCompute
-                    currentCountry = row.entityName
-                    countryExceededThresholdOnDay = row[OwidTableSlugs.time]
+                    currentCountry = entityName
+                    countryExceededThresholdOnDay = time
                 }
-                return row[OwidTableSlugs.time] - countryExceededThresholdOnDay
+                return time - countryExceededThresholdOnDay
             },
         }
     }

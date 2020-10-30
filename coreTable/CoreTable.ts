@@ -218,10 +218,22 @@ export class CoreTable<
         const { colsToCompute } = this
         const columnsObject: CoreColumnStore = {}
         if (!colsToCompute.length) return columnsObject
-        const rows = this.inputColumnStoreToRows
+        const columnStore = this.inputColumnStore
+        const firstCol = Object.values(columnStore)[0]
+        if (!firstCol || !firstCol.length) return columnsObject
+        const indices = range(0, firstCol.length)
         colsToCompute.forEach((def) => {
+            if (def.rowFn) {
+                columnsObject[
+                    def.slug
+                ] = this.inputColumnStoreToRows.map((row, index) =>
+                    def.rowFn!(row, index)
+                ) // Todo: REMOVE
+                return
+            }
             columnsObject[def.slug] =
-                def.values ?? rows.map((row, index) => def.fn!(row, index)) // Todo: make these not operate on rows
+                def.values ??
+                indices.map((index) => def.fn!(columnStore, index))
         })
 
         return columnsObject

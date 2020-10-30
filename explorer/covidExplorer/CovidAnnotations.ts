@@ -2,6 +2,7 @@ import {
     ColumnSlug,
     ColumnTypeNames,
     CoreColumnDef,
+    CoreColumnStore,
     CoreRow,
 } from "coreTable/CoreTableConstants"
 import { EntityName } from "coreTable/OwidTableConstants"
@@ -41,8 +42,13 @@ export enum CovidAnnotationColumnSlugs {
     case_fatality_rate_series_annotations = "case_fatality_rate_series_annotations",
 }
 
-const getSeriesAnnotationsFor = (row: CoreRow, columnSlug: ColumnSlug) => {
-    const { entityName, date } = row
+const getSeriesAnnotationsFor = (
+    columnStore: CoreColumnStore,
+    rowIndex: number,
+    columnSlug: ColumnSlug
+) => {
+    const entityName = columnStore.entityName[rowIndex] as string
+    const date = columnStore.date[rowIndex] as string
     const globalAnnotation = GlobalAnnotations.get(entityName)
     const pointAnnotation = PointAnnotations.get(entityName)?.get(date)
     if (!globalAnnotation && !pointAnnotation) return ""
@@ -68,35 +74,30 @@ const getSeriesAnnotationsFor = (row: CoreRow, columnSlug: ColumnSlug) => {
 
 const dontIncludeInTable = { display: { includeInTable: false } }
 
+const makeAnnoFn = (columnSlug: ColumnSlug) => (
+    columnStore: CoreColumnStore,
+    rowIndex: number
+) => getSeriesAnnotationsFor(columnStore, rowIndex, columnSlug)
+
 export const CovidAnnotationColumnDefs: CoreColumnDef[] = [
     {
         ...dontIncludeInTable,
         slug: CovidAnnotationColumnSlugs.cases_series_annotations,
         type: ColumnTypeNames.SeriesAnnotation,
-        fn: (row) =>
-            getSeriesAnnotationsFor(
-                row,
-                CovidAnnotationColumnSlugs.cases_series_annotations
-            ),
+        fn: makeAnnoFn(CovidAnnotationColumnSlugs.cases_series_annotations),
     },
     {
         ...dontIncludeInTable,
         slug: CovidAnnotationColumnSlugs.deaths_series_annotations,
         type: ColumnTypeNames.SeriesAnnotation,
-        fn: (row) =>
-            getSeriesAnnotationsFor(
-                row,
-                CovidAnnotationColumnSlugs.deaths_series_annotations
-            ),
+        fn: makeAnnoFn(CovidAnnotationColumnSlugs.deaths_series_annotations),
     },
     {
         ...dontIncludeInTable,
         slug: CovidAnnotationColumnSlugs.case_fatality_rate_series_annotations,
         type: ColumnTypeNames.SeriesAnnotation,
-        fn: (row) =>
-            getSeriesAnnotationsFor(
-                row,
-                CovidAnnotationColumnSlugs.case_fatality_rate_series_annotations
-            ),
+        fn: makeAnnoFn(
+            CovidAnnotationColumnSlugs.case_fatality_rate_series_annotations
+        ),
     },
 ]

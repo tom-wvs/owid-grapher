@@ -6,7 +6,7 @@ import {
 } from "coreTable/OwidTableSynthesizers"
 import { BlankOwidTable, OwidTable } from "coreTable/OwidTable"
 import { flatten } from "grapher/utils/Util"
-import { ColumnTypeNames } from "./CoreTableConstants"
+import { ColumnTypeNames, CoreColumnStore } from "./CoreTableConstants"
 import { LegacyVariablesAndEntityKey } from "./LegacyVariableCode"
 import { InvalidCellTypes } from "./InvalidCells"
 import { LegacyGrapherInterface } from "grapher/core/GrapherInterface"
@@ -33,7 +33,8 @@ it("can create a new table by adding a column", () => {
     const table = new OwidTable(sampleRows, [
         {
             slug: "populationInMillions",
-            fn: (row: any) => row.population / 1000000,
+            fn: (columnStore: CoreColumnStore, rowIndex: number) =>
+                (columnStore.population[rowIndex] as number) / 1000000,
         },
     ])
     expect(table.rows[0].populationInMillions).toEqual(300)
@@ -418,7 +419,8 @@ describe("rolling averages", () => {
         const newTable = table.appendColumns([
             {
                 slug: "populationInMillions",
-                fn: (row) => row.population / 1000000,
+                fn: (columnStore: CoreColumnStore, rowIndex: number) =>
+                    (columnStore.population[rowIndex] as number) / 1000000,
             },
         ])
         expect(newTable.rows[0].populationInMillions).toEqual(300)

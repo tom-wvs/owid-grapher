@@ -256,7 +256,8 @@ describe("column operations", () => {
         const table = new CoreTable(rows, [
             {
                 slug: "countryNameLength",
-                fn: (row) => row.country.length,
+                fn: (columnStore, rowIndex) =>
+                    (columnStore.country[rowIndex] as string).length,
             },
         ])
         expect(table.get("countryNameLength")?.parsedValues.join("")).toEqual(
@@ -271,7 +272,7 @@ describe("column operations", () => {
         let table = new CoreTable(rows, [
             {
                 slug: "count",
-                fn: (row) => ++count,
+                fn: () => ++count,
             },
         ])
         let firstRow = table.firstRow as any

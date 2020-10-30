@@ -51,6 +51,7 @@ export interface CoreColumnDef {
     unit?: string
     shortUnit?: string
     fn?: ColumnFn
+    rowFn?: RowFn // todo: DEPRECATED
     values?: CoreValueType[] // Similar to Fn, but the already computed values.
     type?: ColumnTypeNames
     generator?: () => number // A function for generating synthetic data for testing
@@ -134,9 +135,10 @@ export interface CoreQuery {
     [columnSlug: string]: PrimitiveType | PrimitiveType[]
 }
 
-// todo: remove index param?
 // todo: improve typings on this
-export type ColumnFn = (row: CoreRow, index?: Integer) => any
+export type ColumnFn = (columnStore: CoreColumnStore, rowIndex: Integer) => any
+
+export type RowFn = (row: CoreRow, index?: Integer) => any // TODO: REMOVE!!!
 
 /**
  * This is just an array of arrays where the first array is the header and the rest are rows. An example is:
