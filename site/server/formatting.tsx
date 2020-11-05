@@ -607,7 +607,6 @@ export async function formatWordpressPost(
 
     return {
         id: post.id,
-        postId: post.postId,
         type: post.type,
         slug: post.slug,
         path: post.path,
@@ -711,7 +710,6 @@ export async function formatPost(
     if (formattingOptions.raw) {
         return {
             id: post.id,
-            postId: post.postId,
             type: post.type,
             slug: post.slug,
             path: post.path,
