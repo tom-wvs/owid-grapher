@@ -116,7 +116,7 @@ export async function bakeGraphersToSvgs(
     await fs.mkdirp(outDir)
     const graphersBySlug = await getGraphersAndRedirectsBySlug()
 
-    return Promise.all(
+    return Promise.allSettled(
         Array.from(grapherUrls).map((urlStr) => {
             const url = parseUrl(urlStr)
             const slug = lodash.last(url.pathname.split("/")) as string
