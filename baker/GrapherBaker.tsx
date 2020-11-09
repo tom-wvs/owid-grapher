@@ -101,7 +101,10 @@ const bakeGrapherPageAndVariablesPngAndSVGIfChanged = async (
             console.log(pngPath)
         }
     } catch (err) {
-        console.error(err)
+        console.error(
+            `An error occurred when attempting to bake svg/png of ${grapher.slug}`,
+            err
+        )
     }
 }
 
@@ -148,10 +151,14 @@ export const bakeAllChangedGrapherPagesVariablesPngSvgAndDeleteRemovedGraphers =
         const grapher: GrapherInterface = JSON.parse(row.config)
         grapher.id = row.id
         newSlugs.push(grapher.slug)
-        await bakeGrapherPageAndVariablesPngAndSVGIfChanged(
-            bakedSiteDir,
-            grapher
-        )
+        try {
+            await bakeGrapherPageAndVariablesPngAndSVGIfChanged(
+                bakedSiteDir,
+                grapher
+            )
+        } catch (err) {
+            console.error(grapher.slug, err)
+        }
         progressBar.tick({ name: `✅ ${grapher.slug}` })
     }
 
