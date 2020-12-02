@@ -3,6 +3,9 @@ import { urlToSlug, mergeQueryStr } from "grapher/utils/Util"
 import { CoreTable } from "coreTable/CoreTable"
 import { ExplorerProgram, EXPLORER_FILE_SUFFIX } from "./client/ExplorerProgram"
 import { getExplorerFromFile } from "./admin/ExplorerBaker"
+import { queryParamsToStr, strToQueryParams } from "utils/client/url"
+import { objectFromPatch, objectToPatch } from "./client/Patch"
+import { CoreValueType } from "coreTable/CoreTableConstants"
 
 // Todo: remove this file eventually. Would server side redirects do it?
 // this runs only at bake/wordpress/dev time and is not a clientside file.
@@ -52,9 +55,15 @@ const redirectTableTsv = `id	slug	explorerQueryStr
 4490	daily-covid-cases-7-day	zoomToSelection=true&time=2020-10-16..latest&country=USA~IND~GBR~DEU~BRA~MEX&region=World&casesMetric=true&interval=smoothed&smoothing=7&pickerMetric=total_cases&pickerSort=desc&hideControls=true
 4490	daily-covid-cases-7-day-average	zoomToSelection=true&time=2020-10-16..latest&country=USA~IND~GBR~DEU~BRA~MEX&region=World&casesMetric=true&interval=smoothed&smoothing=7&pickerMetric=total_cases&pickerSort=desc&hideControls=true`
 
-export const legacyGrapherToCovidExplorerRedirectTable = new CoreTable(
-    redirectTableTsv
-)
+interface RedirectRow {
+    id: string
+    slug: string
+    explorerQueryStr: string
+}
+
+export const legacyGrapherToCovidExplorerRedirectTable = new CoreTable<
+    RedirectRow
+>(redirectTableTsv)
 
 // In addition to the query strings above, the below ones are ones we need to redirect to the new Covid Explorer.
 // It is about 80 different ones, but it may just be like a 10 liner map function that takes old params and converts
@@ -118,12 +127,69 @@ testsPerCaseMetric=true&interval=total&smoothing=0
 positiveTestRate=true&interval=smoothed&smoothing=7
 positiveTestRate=true&interval=total&smoothing=0`
 
+const legacyIntervalToModernValue = {
+    daily: "New per day",
+    weekly: "Weekly",
+    total: "Cumulative",
+    smoothed: "7-day rolling average",
+    biweekly: "Biweekly",
+    weeklyChange: "Weekly change",
+    biweeklyChange: "Biweekly change",
+}
+
+export const patchFromLegacyCovidExplorerQueryParams = (
+    query: string
+): string => {
+    const {
+        casesMetric,
+        deathsMetric,
+        cfrMetric,
+        testsMetric,
+        testsPerCaseMetric,
+        positiveTestRate,
+        aligned,
+        perCapita,
+        interval,
+        smoothing, // can be ignored, as far as @danielgavrilov is aware
+        ...rest
+    } = strToQueryParams(query)
+
+    const object: { [key: string]: string | undefined } = { ...rest }
+
+    if (casesMetric) {
+        object["Metric Radio"] = "Confirmed cases"
+    } else if (deathsMetric) {
+        object["Metric Radio"] = "Confirmed deaths"
+    } else if (cfrMetric) {
+        object["Metric Radio"] = "Case Fatality Rate"
+    } else if (testsMetric) {
+        object["Metric Radio"] = "Tests"
+    } else if (testsPerCaseMetric) {
+        object["Metric Radio"] = "Tests per confirmed case"
+    } else if (positiveTestRate) {
+        object["Metric Radio"] = "Share of positive tests"
+    }
+
+    // Since the defaults may have changed, we want to explicitly set these
+    object["Align outbreaks Checkbox"] = aligned ? "true" : "false"
+    object["Relative to Population Checkbox"] = perCapita ? "true" : "false"
+
+    if (interval) {
+        object["Interval Dropdown"] =
+            legacyIntervalToModernValue[
+                interval as keyof typeof legacyIntervalToModernValue
+            ]
+    }
+
+    return objectToPatch(object)
+}
+
 let cached: ExplorerProgram
 // todo: remove
 export const getLegacyCovidExplorerAsExplorerProgramForSlug = async (
     slug: string
 ) => {
-    const { row } = legacyGrapherToCovidExplorerRedirectTable.where({
+    const row = legacyGrapherToCovidExplorerRedirectTable.where({
         slug,
     }).firstRow
     if (!row) return undefined
@@ -134,8 +200,15 @@ export const getLegacyCovidExplorerAsExplorerProgramForSlug = async (
             legacyCovidDashboardSlug + EXPLORER_FILE_SUFFIX
         )
 
-    // todo: use querystring
-    return cached
+    const patch = encodeURIComponent(
+        patchFromLegacyCovidExplorerQueryParams(row.explorerQueryStr)
+    )
+    console.log(
+        objectFromPatch(
+            patchFromLegacyCovidExplorerQueryParams(row.explorerQueryStr)
+        )
+    )
+    return cached.initDecisionMatrix(patch)
 }
 
 // todo: remove

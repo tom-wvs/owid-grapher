@@ -55,7 +55,7 @@ import { setWindowQueryStr } from "utils/client/url"
 
 interface ExplorerProps extends SerializedGridProgram {
     grapherConfigs?: GrapherInterface[]
-    patch?: string
+    patchObject?: string
     isEmbeddedInAnOwidPage?: boolean
     isInStandalonePage?: boolean
     canonicalUrl?: string
@@ -94,7 +94,8 @@ export class Explorer
     // caution: do a ctrl+f to find untyped usages
     static renderSingleExplorerOnExplorerPage(
         program: ExplorerProps,
-        grapherConfigs: GrapherInterface[]
+        grapherConfigs: GrapherInterface[],
+        basePatch?: string
     ) {
         const props: ExplorerProps = {
             ...program,
@@ -108,11 +109,15 @@ export class Explorer
             return
         }
 
+        const patchObject = {
+            ...(basePatch
+                ? objectFromPatch(decodeURIComponent(basePatch))
+                : {}),
+            ...objectFromPatch(getPatchFromQueryString(window.location.search)),
+        }
+
         ReactDOM.render(
-            <Explorer
-                {...props}
-                patch={getPatchFromQueryString(window.location.search)}
-            />,
+            <Explorer {...props} patchObject={patchObject} />,
             document.getElementById(ExplorerContainerId)
         )
     }

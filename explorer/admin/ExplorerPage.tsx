@@ -21,10 +21,11 @@ interface ExplorerPageSettings {
     program: ExplorerProgram
     wpContent?: string
     grapherConfigs: GrapherInterface[]
+    basePatch?: string
 }
 
 export const ExplorerPage = (props: ExplorerPageSettings) => {
-    const { wpContent, program, grapherConfigs } = props
+    const { wpContent, program, grapherConfigs, basePatch } = props
     const {
         subNavId,
         subNavCurrentId,
@@ -48,7 +49,8 @@ const grapherConfigs = ${serializeJSONForHTML(
         grapherConfigs,
         EMBEDDED_EXPLORER_GRAPHER_CONFIGS
     )}
-window.Explorer.renderSingleExplorerOnExplorerPage(explorerProgram, grapherConfigs)`
+const basePatch = "${basePatch || ""}"
+window.Explorer.renderSingleExplorerOnExplorerPage(explorerProgram, grapherConfigs, basePatch)`
 
     return (
         <html>

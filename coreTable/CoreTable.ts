@@ -346,7 +346,7 @@ export class CoreTable<
     }
 
     @imemo get rows() {
-        return columnStoreToRows(this.columnStore)
+        return columnStoreToRows(this.columnStore) as ROW_TYPE[]
     }
 
     @imemo get indices() {
@@ -371,11 +371,14 @@ export class CoreTable<
     }
 
     @imemo get firstRow() {
-        return makeRowFromColumnStore(0, this.columnStore)
+        return makeRowFromColumnStore(0, this.columnStore) as ROW_TYPE
     }
 
     @imemo get lastRow() {
-        return makeRowFromColumnStore(this.numRows - 1, this.columnStore)
+        return makeRowFromColumnStore(
+            this.numRows - 1,
+            this.columnStore
+        ) as ROW_TYPE
     }
 
     @imemo get numRows() {

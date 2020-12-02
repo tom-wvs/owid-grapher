@@ -307,11 +307,11 @@ export class SiteBaker {
         const rows = legacyGrapherToCovidExplorerRedirectTable.rows
         for (const row of rows) {
             const { slug, explorerQueryStr } = row
-            // todo: restore functionality
             const program = await getLegacyCovidExplorerAsExplorerProgramForSlug(
                 slug
             )
-            const html = await renderExplorerPage(program!)
+            if (!program) continue
+            const html = await renderExplorerPage(program)
             await this.stageWrite(
                 `${this.bakedSiteDir}/grapher/${slug}.html`,
                 html
