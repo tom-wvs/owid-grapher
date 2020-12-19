@@ -131,6 +131,22 @@ export class Patch {
         },
     ]
 }
+interface ClassWithPatch {
+    updatePatch: () => void
+}
+
+export const updatesPatch = (
+    target: any,
+    propertyName: string,
+    descriptor: TypedPropertyDescriptor<any>
+) => {
+    const originalFn = descriptor.value
+    descriptor.value = function (...args: any[]) {
+        originalFn.apply(this, args)
+        const obj = this as ClassWithPatch
+        obj.updatePatch()
+    }
+}
 
 interface Encoder {
     encode: (str: string) => string

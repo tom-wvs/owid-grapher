@@ -6,13 +6,9 @@ import { TimelineController, TimelineManager } from "./TimelineController"
 
 class TimelineManagerMock implements TimelineManager {
     @observable isPlaying = false
-    @observable userHasSetTimeline = true
     @observable times = range(1900, 2021)
 
     @observable protected _endTime = 2020
-    set endHandleTimeBound(num: number) {
-        this.updateEndTime(num)
-    }
     @computed get endHandleTimeBound() {
         return this._endTime
     }
@@ -22,11 +18,17 @@ class TimelineManagerMock implements TimelineManager {
     }
 
     @observable protected _startTime = 1950
-    set startHandleTimeBound(num: number) {
-        this.updateStartTime(num)
-    }
+
     @computed get startHandleTimeBound() {
         return this._startTime
+    }
+
+    @action.bound setStartHandleTimeBoundCommand(num: number) {
+        this.updateStartTime(num)
+    }
+
+    @action.bound setEndHandleTimeBoundCommand(num: number) {
+        this.updateEndTime(num)
     }
 
     @action.bound updateStartTime(num: number) {
@@ -56,7 +58,7 @@ class SingleYearManager extends TimelineManagerMock {
 
 export const Default = () => {
     const manager = new TimelineManagerMock()
-    manager.startHandleTimeBound = 1900
+    manager.setStartHandleTimeBoundCommand(1900)
     const timelineController = new TimelineController(manager)
     return <TimelineComponent timelineController={timelineController} />
 }

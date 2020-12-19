@@ -4,14 +4,17 @@ import { findClosestTime, last } from "../../clientUtils/Util"
 
 export interface TimelineManager {
     disablePlay?: boolean
-    formatTimeFn?: (time: Time) => string
     isPlaying?: boolean
-    userHasSetTimeline?: boolean
     times: Time[]
     startHandleTimeBound: TimeBound
     endHandleTimeBound: TimeBound
     msPerTick?: number
+
+    formatTimeFn?: (time: Time) => string
     onPlay?: () => void
+
+    setStartHandleTimeBoundCommand: (newBound: TimeBound) => void
+    setEndHandleTimeBoundCommand: (newBound: TimeBound) => void
 }
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -62,7 +65,7 @@ export class TimelineController {
         if (endTime - startTime > 1) return
 
         // if handles within 1 time of each other, snap to closest time.
-        this.manager.startHandleTimeBound = this.manager.endHandleTimeBound
+        this.updateStartTime(this.manager.endHandleTimeBound)
     }
 
     getNextTime(time: number) {
@@ -87,8 +90,8 @@ export class TimelineController {
             manager.endHandleTimeBound !== manager.startHandleTimeBound
                 ? manager.startHandleTimeBound
                 : this.minTime
-        manager.endHandleTimeBound = beginning
-        manager.startHandleTimeBound = beginning
+        this.updateEndTime(beginning)
+        this.updateStartTime(beginning)
     }
 
     async play(numberOfTicks?: number) {
@@ -200,11 +203,11 @@ export class TimelineController {
     }
 
     private updateStartTime(timeBound: TimeBound) {
-        this.manager.startHandleTimeBound = timeBound
+        this.manager.setStartHandleTimeBoundCommand(timeBound)
     }
 
     private updateEndTime(timeBound: TimeBound) {
-        this.manager.endHandleTimeBound = timeBound
+        this.manager.setEndHandleTimeBoundCommand(timeBound)
     }
 
     resetStartToMin() {

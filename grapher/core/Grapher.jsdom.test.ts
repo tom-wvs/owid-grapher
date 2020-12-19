@@ -285,8 +285,8 @@ describe("line chart to bar chart and bar chart race", () => {
             grapher.typeExceptWhenLineChartAndSingleTimeThenWillBeBarChart
         ).toEqual(ChartTypeName.LineChart)
 
-        grapher.startHandleTimeBound = 2000
-        grapher.endHandleTimeBound = 2000
+        grapher.setStartHandleTimeBoundCommand(2000)
+        grapher.setEndHandleTimeBoundCommand(2000)
         expect(
             grapher.typeExceptWhenLineChartAndSingleTimeThenWillBeBarChart
         ).toEqual(ChartTypeName.DiscreteBar)

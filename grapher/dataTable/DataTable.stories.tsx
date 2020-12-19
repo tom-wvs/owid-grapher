@@ -78,8 +78,8 @@ export const FromLegacyWithTimeRange = () => {
         type: ChartTypeName.LineChart,
         tab: GrapherTabOption.chart,
     })
-    grapher.startHandleTimeBound = 1950
-    grapher.endHandleTimeBound = 2019
+    grapher.setStartHandleTimeBoundCommand(1950)
+    grapher.setEndHandleTimeBoundCommand(2019)
     return <DataTable manager={grapher} />
 }
 

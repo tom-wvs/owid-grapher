@@ -67,11 +67,7 @@ import {
     maxTimeToJSON,
     timeBoundToTimeBoundString,
 } from "../../clientUtils/TimeBounds"
-import {
-    strToQueryParams,
-    queryParamsToStr,
-    setWindowQueryStr,
-} from "../../clientUtils/url"
+import { strToQueryParams, setWindowQueryStr } from "../../clientUtils/url"
 import { populationMap } from "../../coreTable/PopulationMap"
 import {
     GrapherInterface,
@@ -155,7 +151,7 @@ import {
     ADMIN_BASE_URL,
     BAKED_GRAPHER_URL,
 } from "../../settings/clientSettings"
-import { Patch } from "../../patch/Patch"
+import { Patch, updatesPatch } from "../../patch/Patch"
 import { PATCH_QUERY_PARAM } from "../../clientUtils/owidTypes"
 
 declare const window: any
@@ -408,19 +404,20 @@ export class Grapher
             this.setDimensionsFromConfigs(obj.dimensions)
     }
 
-    @action.bound changeMinPopulationFilterCommand(newNumber?: number) {
+    @action.bound @updatesPatch changeMinPopulationFilterCommand(
+        newNumber?: number
+    ) {
         this.minPopulationFilter = newNumber
-        this.updatePatch()
     }
 
-    @action.bound changeMapProjectionCommand(value: MapProjectionName) {
+    @action.bound @updatesPatch changeMapProjectionCommand(
+        value: MapProjectionName
+    ) {
         this.mapConfig.projection = value
-        this.updatePatch()
     }
 
-    @action.bound changeEndPointsOnlyCommand(newValue?: boolean) {
+    @action.bound @updatesPatch changeEndPointsOnlyCommand(newValue?: boolean) {
         this.compareEndPointsOnly = newValue
-        this.updatePatch()
     }
 
     @action.bound populateFromPatch(patch: GrapherPatchObject) {
@@ -813,7 +810,7 @@ export class Grapher
         return this.timelineHandleTimeBounds[0]
     }
 
-    set startHandleTimeBound(newValue: TimeBound) {
+    @action.bound setStartHandleTimeBoundCommand(newValue: TimeBound) {
         if (this.isOnMapTab)
             this.setTimelineHandleTimeBoundsCommand([newValue, newValue])
         else
@@ -823,7 +820,7 @@ export class Grapher
             ])
     }
 
-    set endHandleTimeBound(newValue: TimeBound) {
+    @action.bound setEndHandleTimeBoundCommand(newValue: TimeBound) {
         if (
             this.isOnMapTab ||
             this.isDiscreteBarOrLineChartTransformedIntoDiscreteBar
@@ -972,7 +969,7 @@ export class Grapher
         return this.overlay ? this.overlay : this.tab
     }
 
-    @action.bound changeTabCommand(desiredTab: GrapherTabOption) {
+    @action.bound @updatesPatch changeTabCommand(desiredTab: GrapherTabOption) {
         if (
             desiredTab === GrapherTabOption.chart ||
             desiredTab === GrapherTabOption.map ||
@@ -986,8 +983,6 @@ export class Grapher
                 this.tab = this.authorsVersion.tab ?? GrapherTabOption.chart
             this.overlay = desiredTab
         }
-
-        this.updatePatch()
     }
 
     @computed get timelineHandleTimeBounds(): TimeBounds {
@@ -1002,13 +997,14 @@ export class Grapher
         ]
     }
 
-    @action.bound setTimelineHandleTimeBoundsCommand(value: TimeBounds) {
+    @action.bound @updatesPatch setTimelineHandleTimeBoundsCommand(
+        value: TimeBounds
+    ) {
         if (this.isOnMapTab) this.map.time = value[1]
         else {
             this.minTime = value[0]
             this.maxTime = value[1]
         }
-        this.updatePatch()
     }
 
     // Get the dimension slots appropriate for this type of chart
@@ -1744,12 +1740,11 @@ export class Grapher
         )
     }
 
-    @action.bound changeScaleTypeCommand(
+    @action.bound @updatesPatch changeScaleTypeCommand(
         axisConfig: AxisConfig,
         newScaleType?: ScaleType
     ) {
         axisConfig.scaleType = newScaleType
-        this.updatePatch()
     }
 
     @action.bound private toggleFacetStrategyCommand() {
@@ -1758,11 +1753,10 @@ export class Grapher
         )
     }
 
-    @action.bound private changeFacetStrategyCommand(
+    @action.bound @updatesPatch private changeFacetStrategyCommand(
         newStrategy?: FacetStrategy
     ) {
         this.facet = newStrategy
-        this.updatePatch()
     }
 
     @observable facet?: FacetStrategy
@@ -2099,14 +2093,14 @@ export class Grapher
               )}`
     }
 
-    @action.bound changeZoomToSelectionCommand(newValue?: boolean) {
+    @action.bound @updatesPatch changeZoomToSelectionCommand(
+        newValue?: boolean
+    ) {
         this.zoomToSelection = newValue
-        this.updatePatch()
     }
 
-    @action.bound changeStackModeCommand(newMode: StackMode) {
+    @action.bound @updatesPatch changeStackModeCommand(newMode: StackMode) {
         this.stackMode = newMode
-        this.updatePatch()
     }
 
     // Todo: move all Graphers to git. Upgrade the selection property; delete the entityId stuff, and remove this.
@@ -2132,7 +2126,7 @@ export class Grapher
         return undefined
     }
 
-    @action.bound private updatePatch() {
+    @action.bound updatePatch() {
         const changedParams = deleteRuntimeAndUnchangedProps<
             GrapherPatchObject
         >(this.allParams, this.authorsVersion.allParams)

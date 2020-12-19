@@ -102,13 +102,15 @@ class TimelineSection extends React.Component<{ editor: ChartEditor }> {
     }
 
     @action.bound onMinTime(value: number | undefined) {
-        this.grapher.startHandleTimeBound =
+        this.grapher.setStartHandleTimeBoundCommand(
             value ?? TimeBoundValue.negativeInfinity
+        )
     }
 
     @action.bound onMaxTime(value: number | undefined) {
-        this.grapher.endHandleTimeBound =
+        this.grapher.setEndHandleTimeBoundCommand(
             value ?? TimeBoundValue.positiveInfinity
+        )
     }
 
     @action.bound onTimelineMinTime(value: number | undefined) {
