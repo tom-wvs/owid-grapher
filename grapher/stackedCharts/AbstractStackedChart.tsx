@@ -1,5 +1,5 @@
 import { DualAxis } from "../axis/Axis"
-import { AxisConfig, FontSizeManager } from "../axis/AxisConfig"
+import { AxisConfig, AxisConfigManager } from "../axis/AxisConfig"
 import { ChartInterface } from "../chart/ChartInterface"
 import { ChartManager } from "../chart/ChartManager"
 import {
@@ -36,7 +36,7 @@ export interface AbstactStackedChartProps {
 @observer
 export class AbstactStackedChart
     extends React.Component<AbstactStackedChartProps>
-    implements ChartInterface, FontSizeManager {
+    implements ChartInterface, AxisConfigManager {
     transformTable(table: OwidTable) {
         table = table.filterByEntityNames(
             this.selectionArray.selectedEntityNames

@@ -7,7 +7,6 @@ export enum ExplorerControlType {
 }
 
 export const DefaultNewExplorerSlug = "new"
-export const PATCH_QUERY_PARAM = "patch"
 
 export const ExplorerControlTypeRegex = new RegExp(
     " (" + Object.values(ExplorerControlType).join("|") + ")$"

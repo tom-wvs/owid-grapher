@@ -68,7 +68,7 @@ describe("when you select a range of years", () => {
             type: ChartTypeName.LineChart,
             tab: GrapherTabOption.table,
         })
-        grapher.timelineHandleTimeBounds = [1950, 2019]
+        grapher.setTimelineHandleTimeBoundsCommand([1950, 2019])
 
         view = mount(<DataTable manager={grapher} />)
     })
@@ -105,7 +105,7 @@ describe("when you select a range of years", () => {
 
 describe("when the table doesn't have data for all rows", () => {
     const grapher = IncompleteDataTable()
-    grapher.timelineHandleTimeBounds = [2000, 2000]
+    grapher.setTimelineHandleTimeBoundsCommand([2000, 2000])
     const view = shallow(<DataTable manager={grapher} />)
 
     it("renders no value when data is not available for years within the tolerance", () => {

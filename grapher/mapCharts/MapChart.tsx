@@ -270,7 +270,8 @@ export class MapChart
 
         if (!ev.shiftKey) {
             this.selectionArray.setSelectedEntities([entityName])
-            this.manager.currentTab = GrapherTabOption.chart
+            if (this.manager.changeTabCommand)
+                this.manager.changeTabCommand(GrapherTabOption.chart)
         } else this.selectionArray.toggleSelection(entityName)
     }
 
@@ -292,7 +293,8 @@ export class MapChart
     }
 
     @action.bound onProjectionChange(value: MapProjectionName) {
-        this.mapConfig.projection = value
+        if (this.manager.changeMapProjectionCommand)
+            this.manager.changeMapProjectionCommand(value)
     }
 
     @computed get formatTooltipValue(): (d: number | string) => string {

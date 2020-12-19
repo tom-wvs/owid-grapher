@@ -1,5 +1,6 @@
 import { TooltipProps } from "../tooltip/TooltipProps"
 import { Bounds } from "../../clientUtils/Bounds"
+import { GrapherTabOption } from "../core/GrapherConstants"
 
 export interface FooterManager {
     fontSize?: number
@@ -9,7 +10,8 @@ export interface FooterManager {
     shouldLinkToOwid?: boolean
     originUrlWithProtocol?: string
     isMediaCard?: boolean
-    currentTab?: string
     tooltip?: TooltipProps
     tabBounds?: Bounds
+
+    changeTabCommand?: (tabName: GrapherTabOption) => void
 }

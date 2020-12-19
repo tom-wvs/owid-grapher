@@ -9,7 +9,7 @@ import {
 } from "./GrapherConstants"
 import {
     GrapherInterface,
-    LegacyGrapherQueryParams,
+    LegacyGrapherPatchObject,
     legacyQueryParamsToCurrentQueryParams,
 } from "../core/GrapherInterface"
 import {
@@ -124,9 +124,9 @@ it("can generate a url with country selection even if there is no entity code", 
         selectedData: [],
     }
     const grapher = new Grapher(config)
-    expect(grapher.queryStr).toBe("")
+    expect(grapher.encodedQueryStr).toBe("")
     grapher.selection.selectAll()
-    expect(grapher.queryStr).toContain("Afghanistan")
+    expect(grapher.encodedQueryStr).toContain("Afghanistan")
 
     const config2 = {
         ...legacyConfig,
@@ -134,9 +134,9 @@ it("can generate a url with country selection even if there is no entity code", 
     }
     config2.owidDataset.entityKey[15].code = undefined as any
     const grapher2 = new Grapher(config2)
-    expect(grapher2.queryStr).toBe("")
+    expect(grapher2.encodedQueryStr).toBe("")
     grapher2.selection.selectAll()
-    expect(grapher2.queryStr).toContain("Afghanistan")
+    expect(grapher2.encodedQueryStr).toContain("Afghanistan")
 })
 
 it("stackedbars should not have timelines", () => {
@@ -174,13 +174,11 @@ const getGrapher = () =>
     })
 
 function fromQueryParams(
-    params: LegacyGrapherQueryParams,
+    params: LegacyGrapherPatchObject,
     props?: Partial<GrapherInterface>
 ) {
     const grapher = new Grapher(props)
-    grapher.populateFromQueryParams(
-        legacyQueryParamsToCurrentQueryParams(params)
-    )
+    grapher.populateFromPatch(legacyQueryParamsToCurrentQueryParams(params))
     return grapher
 }
 
@@ -191,17 +189,17 @@ function toQueryParams(props?: Partial<GrapherInterface>) {
         map: { time: 5000 },
     })
     if (props) grapher.updateFromObject(props)
-    return grapher.changedParams
+    return grapher.patch
 }
 
 it("can serialize scaleType if it changes", () => {
-    expect(new Grapher().changedParams.xScale).toEqual(undefined)
+    expect(new Grapher().patch.object.xScale).toEqual(undefined)
     const grapher = new Grapher({
         xAxis: { scaleType: ScaleType.linear },
     })
-    expect(grapher.changedParams.xScale).toEqual(undefined)
-    grapher.xAxis.scaleType = ScaleType.log
-    expect(grapher.changedParams.xScale).toEqual(ScaleType.log)
+    expect(grapher.patch.object.xScale).toEqual(undefined)
+    grapher.changeScaleTypeCommand(grapher.xAxis, ScaleType.log)
+    expect(grapher.patch.object.xScale).toEqual(ScaleType.log)
 })
 
 describe("currentTitle", () => {
@@ -222,20 +220,20 @@ describe("currentTitle", () => {
             ],
         })
 
-        grapher.timelineHandleTimeBounds = [2001, 2005]
+        grapher.setTimelineHandleTimeBoundsCommand([2001, 2005])
         expect(grapher.currentTitle).toContain("2001")
         expect(grapher.currentTitle).toContain("2005")
         expect(grapher.currentTitle).not.toContain("Infinity")
 
-        grapher.timelineHandleTimeBounds = [1900, 2020]
+        grapher.setTimelineHandleTimeBoundsCommand([1900, 2020])
         expect(grapher.currentTitle).toContain("2000")
         expect(grapher.currentTitle).toContain("2009")
 
-        grapher.timelineHandleTimeBounds = [-Infinity, Infinity]
+        grapher.setTimelineHandleTimeBoundsCommand([-Infinity, Infinity])
         expect(grapher.currentTitle).toContain("2000")
         expect(grapher.currentTitle).toContain("2009")
 
-        grapher.timelineHandleTimeBounds = [Infinity, Infinity]
+        grapher.setTimelineHandleTimeBoundsCommand([Infinity, Infinity])
         expect(grapher.currentTitle).not.toContain("2000")
         expect(grapher.currentTitle).toContain("2009")
     })
@@ -465,7 +463,7 @@ describe("time parameter", () => {
                         minTime: test.param[0],
                         maxTime: test.param[1],
                     })
-                    expect(params.time).toEqual(test.query)
+                    expect(params.object.time).toEqual(test.query)
                 })
             }
         }
@@ -485,7 +483,7 @@ describe("time parameter", () => {
                 minTime: 0,
                 maxTime: 75,
             })
-            expect(grapher.changedParams.time).toEqual(undefined)
+            expect(grapher.patch.object.time).toEqual(undefined)
         })
 
         it("doesn't include URL param if unbounded is encoded as `undefined`", () => {
@@ -493,7 +491,7 @@ describe("time parameter", () => {
                 minTime: undefined,
                 maxTime: 75,
             })
-            expect(grapher.changedParams.time).toEqual(undefined)
+            expect(grapher.patch.object.time).toEqual(undefined)
         })
     })
 
@@ -606,7 +604,7 @@ describe("time parameter", () => {
         for (const test of tests) {
             it(`parse ${test.name}`, () => {
                 const grapher = getGrapher()
-                grapher.populateFromQueryParams({ time: test.query })
+                grapher.populateFromPatch({ time: test.query })
                 const [start, end] = grapher.timelineHandleTimeBounds
                 expect(start).toEqual(test.param[0])
                 expect(end).toEqual(test.param[1])
@@ -618,8 +616,8 @@ describe("time parameter", () => {
                         minTime: test.param[0],
                         maxTime: test.param[1],
                     })
-                    const params = grapher.changedParams
-                    expect(params.time).toEqual(test.query)
+                    const params = grapher.patch
+                    expect(params.object.time).toEqual(test.query)
                 })
             }
         }
@@ -672,7 +670,7 @@ describe("year parameter (applies to map only)", () => {
                     tab: GrapherTabOption.map,
                     map: { time: test.param },
                 })
-                expect(params.time).toEqual(test.query)
+                expect(params.object.time).toEqual(test.query)
             })
         }
 
@@ -717,7 +715,7 @@ describe("year parameter (applies to map only)", () => {
         for (const test of tests) {
             describe(`parse ${test.name}`, () => {
                 const grapher = getGrapher()
-                grapher.populateFromQueryParams(
+                grapher.populateFromPatch(
                     legacyQueryParamsToCurrentQueryParams({
                         year: test.query,
                     })
@@ -728,9 +726,9 @@ describe("year parameter (applies to map only)", () => {
                 ])
 
                 it("can clear query params", () => {
-                    expect(grapher.queryStr).toBeTruthy()
+                    expect(grapher.encodedQueryStr).toBeTruthy()
                     grapher.clearQueryParams()
-                    expect(grapher.queryStr).toBeFalsy()
+                    expect(grapher.encodedQueryStr).toBeFalsy()
                 })
             })
             if (!test.irreversible) {
@@ -740,8 +738,8 @@ describe("year parameter (applies to map only)", () => {
                         tab: GrapherTabOption.map,
                         map: { time: test.param },
                     })
-                    const params = grapher.changedParams
-                    expect(params.time).toEqual(test.query)
+                    const params = grapher.patch
+                    expect(params.object.time).toEqual(test.query)
                 })
             }
         }

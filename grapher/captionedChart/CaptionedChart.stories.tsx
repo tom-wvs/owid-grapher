@@ -26,7 +26,7 @@ const manager: CaptionedChartManager = {
     currentTitle: "This is the Title",
     subtitle: "A Subtitle",
     note: "Here are some footer notes",
-    populateFromQueryParams: () => {},
+    populateFromPatch: () => {},
     isReady: true,
 }
 

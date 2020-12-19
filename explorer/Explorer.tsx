@@ -3,7 +3,7 @@ import { observer } from "mobx-react"
 import { action, observable, computed, autorun, reaction } from "mobx"
 import {
     GrapherInterface,
-    GrapherQueryParams,
+    GrapherPatchObject,
 } from "../grapher/core/GrapherInterface"
 import {
     ExplorerControlPanel,
@@ -11,7 +11,10 @@ import {
 } from "../explorer/ExplorerControls"
 import ReactDOM from "react-dom"
 import { ExplorerProgram } from "../explorer/ExplorerProgram"
-import { SerializedGridProgram } from "../clientUtils/owidTypes"
+import {
+    PATCH_QUERY_PARAM,
+    SerializedGridProgram,
+} from "../clientUtils/owidTypes"
 import {
     Grapher,
     GrapherManager,
@@ -31,7 +34,6 @@ import {
     ExplorerContainerId,
     EXPLORERS_PREVIEW_ROUTE,
     EXPLORERS_ROUTE_FOLDER,
-    PATCH_QUERY_PARAM,
     UNSAVED_EXPLORER_DRAFT,
     UNSAVED_EXPLORER_PREVIEW_PATCH,
 } from "./ExplorerConstants"
@@ -119,7 +121,7 @@ export class Explorer
     )
 
     private initialPatchObject = new Patch(this.props.uriEncodedPatch)
-        .object as GrapherQueryParams
+        .object as GrapherPatchObject
 
     @observable entityPickerSlug? = this.explorerProgram.pickerSlug
     @observable entityPickerSort? = this.explorerProgram.pickerSortOrder
@@ -171,7 +173,7 @@ export class Explorer
         // todo: ideally we can factor this thingy out
         this.grapherParamsChangedSincePageLoad = {
             ...this.grapherParamsChangedSincePageLoad,
-            ...this.grapher!.changedParams,
+            ...this.grapher!.patch,
         }
     }
 
@@ -208,10 +210,8 @@ export class Explorer
 
         if (grapher.id !== undefined) this.snapshotCurrentChangedGrapherParams()
 
-        const queryParams =
-            grapher.id !== undefined
-                ? grapher.changedParams
-                : this.initialPatchObject
+        const grapherPatch =
+            grapher.id !== undefined ? grapher.patch : this.initialPatchObject
 
         const grapherConfig =
             grapherId && hasGrapherId ? this.grapherConfigs.get(grapherId)! : {}
@@ -230,7 +230,7 @@ export class Explorer
         grapher.updateFromObject(config)
         this.setTableBySlug(tableSlug) // Set a table immediately, even if a BlankTable
         this.fetchTableAndStoreInCache(tableSlug) // Fetch a remote table in the background, if any.
-        grapher.populateFromQueryParams(queryParams)
+        grapher.populateFromPatch(grapherPatch as GrapherPatchObject)
         grapher.downloadData()
         grapher.slug = this.explorerProgram.slug
         if (!hasGrapherId) grapher.id = 0
@@ -321,7 +321,7 @@ export class Explorer
         return encodedPatch ? `?${PATCH_QUERY_PARAM}=` + encodedPatch : ""
     }
 
-    @computed get patchObject(): GrapherQueryParams {
+    @computed get patchObject(): GrapherPatchObject {
         if (!this.grapher) return {}
 
         const { patchObject } = this.explorerProgram
@@ -334,7 +334,7 @@ export class Explorer
 
         const combinedPatchObject = {
             ...this.grapherParamsChangedSincePageLoad,
-            ...this.grapher.changedParams,
+            ...this.grapher.patch,
             ...patchObject,
         }
 
@@ -352,7 +352,7 @@ export class Explorer
      *
      * To accomplish this, we need to maintain a little state containing all the url params that have changed during this user's session.
      */
-    private grapherParamsChangedSincePageLoad: GrapherQueryParams = {}
+    private grapherParamsChangedSincePageLoad: GrapherPatchObject = {}
 
     private get panels() {
         return this.explorerProgram.decisionMatrix.choicesWithAvailability.map(

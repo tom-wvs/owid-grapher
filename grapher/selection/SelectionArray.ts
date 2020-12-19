@@ -19,16 +19,24 @@ export class SelectionArray {
     constructor(
         selectedEntityNames: EntityName[] = [],
         availableEntities: Entity[] = [],
-        entityType = "country"
+        entityType = "country",
+        onSelectionChange = () => {}
     ) {
-        this.selectedEntityNames = selectedEntityNames.slice()
+        this._selectedEntityNames = selectedEntityNames.slice()
         this.availableEntities = availableEntities.slice()
         this.entityType = entityType
+        this.onSelectionChange = onSelectionChange
     }
 
-    @observable entityType: string
-    @observable selectedEntityNames: EntityName[]
+    private onSelectionChange: () => void
+
+    entityType: string
+    @observable private _selectedEntityNames: EntityName[]
     @observable private availableEntities: Entity[]
+
+    @computed get selectedEntityNames() {
+        return this._selectedEntityNames
+    }
 
     @computed get availableEntityNames() {
         return this.availableEntities.map((entity) => entity.entityName)
@@ -87,11 +95,6 @@ export class SelectionArray {
         return this.addToSelection(entityNames)
     }
 
-    @action.bound addToSelection(entityNames: EntityName[]) {
-        this.selectedEntityNames = this.selectedEntityNames.concat(entityNames)
-        return this
-    }
-
     @action.bound addAvailableEntityNames(entities: Entity[]) {
         this.availableEntities.push(...entities)
         return this
@@ -114,8 +117,24 @@ export class SelectionArray {
         return this.addToSelection(this.unselectedEntityNames)
     }
 
+    @action.bound private setSelection(newSelection: EntityName[]) {
+        this._selectedEntityNames = newSelection
+        this.onSelectionChange()
+        return this
+    }
+
+    @action.bound addToSelection(entityNames: EntityName[]) {
+        return this.setSelection(this.selectedEntityNames.concat(entityNames))
+    }
+
     @action.bound clearSelection() {
-        this.selectedEntityNames = []
+        return this.setSelection([])
+    }
+
+    @action.bound deselectEntity(entityName: EntityName) {
+        return this.setSelection(
+            this.selectedEntityNames.filter((name) => name !== entityName)
+        )
     }
 
     @action.bound toggleSelection(entityName: EntityName) {
@@ -137,13 +156,6 @@ export class SelectionArray {
         return this.setSelectedEntities(
             this.availableEntityNames.slice(0, howMany)
         )
-    }
-
-    @action.bound deselectEntity(entityName: EntityName) {
-        this.selectedEntityNames = this.selectedEntityNames.filter(
-            (name) => name !== entityName
-        )
-        return this
     }
 
     @computed get asParam() {

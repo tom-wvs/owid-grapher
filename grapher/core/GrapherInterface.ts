@@ -25,7 +25,7 @@ import { omit } from "../../clientUtils/Util"
 import { EntityId, EntityName } from "../../coreTable/OwidTableConstants"
 import { ColorSchemeName } from "../color/ColorConstants"
 import { EntityUrlBuilder } from "./EntityUrlBuilder"
-import { QueryParams } from "../../clientUtils/url"
+import { PatchObjectLiteral } from "../../patch/Patch"
 
 // This configuration represents the entire persistent state of a grapher
 // Ideally, this is also all of the interaction state: when a grapher is saved and loaded again
@@ -98,7 +98,7 @@ export interface LegacyGrapherInterface extends GrapherInterface {
     data: any
 }
 
-export interface GrapherQueryParams extends QueryParams {
+export interface GrapherPatchObject extends PatchObjectLiteral {
     tab?: string
     overlay?: string
     stackMode?: string
@@ -113,7 +113,7 @@ export interface GrapherQueryParams extends QueryParams {
     selection?: string
 }
 
-export interface LegacyGrapherQueryParams extends GrapherQueryParams {
+export interface LegacyGrapherPatchObject extends GrapherPatchObject {
     year?: string
     country?: string // deprecated
 }
@@ -174,9 +174,9 @@ export const grapherKeysToSerialize = [
 ]
 
 export const legacyQueryParamsToCurrentQueryParams = (
-    params: LegacyGrapherQueryParams
+    params: LegacyGrapherPatchObject
 ) => {
-    const obj = omit(params, "year", "country") as GrapherQueryParams
+    const obj = omit(params, "year", "country") as GrapherPatchObject
     if (params.year !== undefined) obj.time = obj.time ?? params.year
     if (params.country !== undefined)
         obj.selection = EntityUrlBuilder.migrateLegacyCountryParam(

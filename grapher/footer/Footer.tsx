@@ -142,7 +142,8 @@ export class Footer extends React.Component<{
     }
 
     @action.bound private onSourcesClick() {
-        this.manager.currentTab = GrapherTabOption.sources
+        if (this.manager.changeTabCommand)
+            this.manager.changeTabCommand(GrapherTabOption.sources)
     }
 
     renderStatic(targetX: number, targetY: number) {

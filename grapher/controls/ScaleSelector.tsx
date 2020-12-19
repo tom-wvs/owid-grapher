@@ -7,6 +7,7 @@ import { next } from "../../clientUtils/Util"
 
 export interface ScaleSelectorManager {
     scaleType?: ScaleType
+    changeScaleTypeCommand?: (newScaleType: ScaleType) => void
 }
 
 @observer
@@ -16,10 +17,13 @@ export class ScaleSelector extends React.Component<{
 }> {
     @action.bound private onClick() {
         const manager = this.props.manager ?? {}
-        manager.scaleType = next(
-            [ScaleType.linear, ScaleType.log],
-            manager.scaleType ?? ScaleType.linear
-        )
+        if (manager.changeScaleTypeCommand)
+            manager.changeScaleTypeCommand(
+                next(
+                    [ScaleType.linear, ScaleType.log],
+                    manager.scaleType ?? ScaleType.linear
+                )
+            )
     }
 
     render() {

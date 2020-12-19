@@ -14,7 +14,7 @@ export interface DownloadTabManager {
     staticSVG: string
     displaySlug: string
     baseUrl?: string
-    queryStr?: string
+    encodedQueryStr?: string
     table?: OwidTable
     externalCsvLink?: string // Todo: we can ditch this once rootTable === externalCsv (currently not quite the case for Covid Explorer)
 }
@@ -142,8 +142,11 @@ export class DownloadTab extends React.Component<DownloadTabProps> {
     }
 
     @computed private get fallbackPngUrl() {
-        return `${this.manager.baseUrl || ""}.png${this.manager.queryStr || ""}`
+        return `${this.manager.baseUrl || ""}.png${
+            this.manager.encodedQueryStr || ""
+        }`
     }
+
     @computed private get baseFilename() {
         return this.manager.displaySlug
     }

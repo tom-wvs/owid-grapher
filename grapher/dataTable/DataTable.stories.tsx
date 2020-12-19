@@ -85,7 +85,7 @@ export const FromLegacyWithTimeRange = () => {
 
 export const IncompleteDataTableComponent = () => {
     const grapher = IncompleteDataTable()
-    grapher.timelineHandleTimeBounds = [2000, 2000]
+    grapher.setTimelineHandleTimeBoundsCommand([2000, 2000])
     return <DataTable manager={grapher} />
 }
 

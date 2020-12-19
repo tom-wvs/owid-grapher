@@ -1,11 +1,7 @@
 import * as React from "react"
 import { computed, action } from "mobx"
 import { observer } from "mobx-react"
-import {
-    getQueryParams,
-    getWindowQueryParams,
-    QueryParams,
-} from "../../clientUtils/url"
+import { getQueryParams, getWindowQueryParams } from "../../clientUtils/url"
 import { TimelineComponent } from "../timeline/TimelineComponent"
 import { formatValue } from "../../clientUtils/formatValue"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
@@ -22,11 +18,12 @@ import {
 import { ShareMenu, ShareMenuManager } from "./ShareMenu"
 import { TimelineController } from "../timeline/TimelineController"
 import { SelectionArray } from "../selection/SelectionArray"
+import { PatchObjectLiteral } from "../../patch/Patch"
 
 export interface HighlightToggleManager {
     highlightToggle?: HighlightToggleConfig
     selectionArray?: SelectionArray
-    populateFromQueryParams: (obj: QueryParams) => void
+    populateFromPatch: (obj: PatchObjectLiteral) => void
 }
 
 // Todo: Add tests and stories
@@ -57,7 +54,7 @@ export class HighlightToggle extends React.Component<{
             ...getWindowQueryParams(),
             ...this.highlightParams,
         }
-        this.manager.populateFromQueryParams(params)
+        this.manager.populateFromPatch(params)
     }
 
     private get isHighlightActive() {
@@ -87,6 +84,8 @@ export class HighlightToggle extends React.Component<{
 export interface AbsRelToggleManager {
     stackMode?: StackMode
     relativeToggleLabel?: string
+
+    changeStackModeCommand?: (newMode: StackMode) => void
 }
 
 @observer
@@ -94,9 +93,10 @@ export class AbsRelToggle extends React.Component<{
     manager: AbsRelToggleManager
 }> {
     @action.bound onToggle() {
-        this.manager.stackMode = this.isRelativeMode
-            ? StackMode.absolute
-            : StackMode.relative
+        if (this.manager.changeStackModeCommand)
+            this.manager.changeStackModeCommand(
+                this.isRelativeMode ? StackMode.absolute : StackMode.relative
+            )
     }
 
     @computed get isRelativeMode() {
@@ -125,6 +125,8 @@ export class AbsRelToggle extends React.Component<{
 
 export interface ZoomToggleManager {
     zoomToSelection?: boolean
+
+    changeZoomToSelectionCommand?: (newValue?: boolean) => void
 }
 
 @observer
@@ -132,9 +134,10 @@ export class ZoomToggle extends React.Component<{
     manager: ZoomToggleManager
 }> {
     @action.bound onToggle() {
-        this.props.manager.zoomToSelection = this.props.manager.zoomToSelection
-            ? undefined
-            : true
+        if (this.props.manager.changeZoomToSelectionCommand)
+            this.props.manager.changeZoomToSelectionCommand(
+                this.props.manager.zoomToSelection ? undefined : true
+            )
     }
 
     render() {
@@ -156,6 +159,8 @@ export class ZoomToggle extends React.Component<{
 export interface SmallCountriesFilterManager {
     populationFilterOption?: number
     minPopulationFilter?: number
+
+    changeMinPopulationFilterCommand?: (newNumber?: number) => void
 }
 
 @observer
@@ -163,9 +168,10 @@ export class FilterSmallCountriesToggle extends React.Component<{
     manager: SmallCountriesFilterManager
 }> {
     @action.bound private onChange() {
-        this.manager.minPopulationFilter = this.manager.minPopulationFilter
-            ? undefined
-            : this.filterOption
+        if (this.manager.changeMinPopulationFilterCommand)
+            this.manager.changeMinPopulationFilterCommand(
+                this.manager.minPopulationFilter ? undefined : this.filterOption
+            )
     }
 
     @computed private get manager() {
@@ -207,6 +213,8 @@ export interface FooterControlsManager extends ShareMenuManager {
     relatedQuestions: RelatedQuestionsConfig[]
     footerControlsHeight?: number
     timelineController?: TimelineController
+
+    changeTabCommand: (tabName: GrapherTabOption) => void
 }
 
 @observer
@@ -242,7 +250,7 @@ export class FooterControls extends React.Component<{
                                             : "")
                                     }
                                     onClick={() =>
-                                        (manager.currentTab = tabName)
+                                        manager.changeTabCommand(tabName)
                                     }
                                 >
                                     <a
@@ -265,7 +273,7 @@ export class FooterControls extends React.Component<{
                         }
                         data-track-note="chart-click-download"
                         onClick={() =>
-                            (manager.currentTab = GrapherTabOption.download)
+                            manager.changeTabCommand(GrapherTabOption.download)
                         }
                         title="Download as .png or .svg"
                     >

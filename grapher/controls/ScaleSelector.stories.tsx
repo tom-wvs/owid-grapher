@@ -1,7 +1,7 @@
 import * as React from "react"
 import { ScaleSelector, ScaleSelectorManager } from "../controls/ScaleSelector"
 import { ScaleType } from "../core/GrapherConstants"
-import { observable } from "mobx"
+import { action, observable } from "mobx"
 
 export default {
     title: "ScaleSelector",
@@ -10,6 +10,10 @@ export default {
 
 class MockScaleSelectorManager implements ScaleSelectorManager {
     @observable scaleType = ScaleType.log
+
+    @action.bound changeScaleTypeCommand(newScaleType: ScaleType) {
+        this.scaleType = newScaleType
+    }
 }
 
 export const Default = () => (

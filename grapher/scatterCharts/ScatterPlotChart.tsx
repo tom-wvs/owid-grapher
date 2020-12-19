@@ -451,8 +451,10 @@ export class ScatterPlotChart
     }
 
     @action.bound private onToggleEndpoints() {
-        this.manager.compareEndPointsOnly =
-            !this.compareEndPointsOnly || undefined
+        if (this.manager.changeEndPointsOnlyCommand)
+            this.manager.changeEndPointsOnlyCommand(
+                !this.compareEndPointsOnly || undefined
+            )
     }
 
     // Colors currently on the chart and not greyed out

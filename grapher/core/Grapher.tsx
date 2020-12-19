@@ -76,7 +76,7 @@ import { populationMap } from "../../coreTable/PopulationMap"
 import {
     GrapherInterface,
     grapherKeysToSerialize,
-    GrapherQueryParams,
+    GrapherPatchObject,
     LegacyGrapherInterface,
     legacyQueryParamsToCurrentQueryParams,
 } from "../core/GrapherInterface"
@@ -84,7 +84,7 @@ import { DimensionSlot } from "../chart/DimensionSlot"
 import { EntityUrlBuilder } from "./EntityUrlBuilder"
 import { MapProjectionName } from "../mapCharts/MapProjections"
 import { LogoOption } from "../captionedChart/Logos"
-import { AxisConfig, FontSizeManager } from "../axis/AxisConfig"
+import { AxisConfig, AxisConfigManager } from "../axis/AxisConfig"
 import { ColorScaleConfig } from "../color/ColorScaleConfig"
 import { MapConfig } from "../mapCharts/MapConfig"
 import { ComparisonLineConfig } from "../scatterCharts/ComparisonLine"
@@ -155,7 +155,8 @@ import {
     ADMIN_BASE_URL,
     BAKED_GRAPHER_URL,
 } from "../../settings/clientSettings"
-import { Patch } from "../patch/Patch"
+import { Patch } from "../../patch/Patch"
+import { PATCH_QUERY_PARAM } from "../../clientUtils/owidTypes"
 
 declare const window: any
 
@@ -208,7 +209,7 @@ export class Grapher
     implements
         TimelineManager,
         ChartManager,
-        FontSizeManager,
+        AxisConfigManager,
         CaptionedChartManager,
         SourcesTabManager,
         DownloadTabManager,
@@ -266,8 +267,8 @@ export class Grapher
     @observable.ref compareEndPointsOnly?: boolean = undefined
     @observable.ref matchingEntitiesOnly?: boolean = undefined
 
-    @observable.ref xAxis = new AxisConfig(undefined, this)
-    @observable.ref yAxis = new AxisConfig(undefined, this)
+    @observable.ref xAxis: AxisConfig = new AxisConfig(undefined, this)
+    @observable.ref yAxis: AxisConfig = new AxisConfig(undefined, this)
     @observable colorScale = new ColorScaleConfig()
     @observable map = new MapConfig()
     @observable.ref dimensions: ChartDimension[] = []
@@ -341,7 +342,7 @@ export class Grapher
 
         if (!props.table) this.downloadData()
 
-        this.populateFromQueryParams(
+        this.populateFromPatch(
             legacyQueryParamsToCurrentQueryParams(
                 strToQueryParams(props.queryStr)
             )
@@ -407,16 +408,31 @@ export class Grapher
             this.setDimensionsFromConfigs(obj.dimensions)
     }
 
-    @action.bound populateFromQueryParams(params: GrapherQueryParams) {
+    @action.bound changeMinPopulationFilterCommand(newNumber?: number) {
+        this.minPopulationFilter = newNumber
+        this.updatePatch()
+    }
+
+    @action.bound changeMapProjectionCommand(value: MapProjectionName) {
+        this.mapConfig.projection = value
+        this.updatePatch()
+    }
+
+    @action.bound changeEndPointsOnlyCommand(newValue?: boolean) {
+        this.compareEndPointsOnly = newValue
+        this.updatePatch()
+    }
+
+    @action.bound populateFromPatch(patch: GrapherPatchObject) {
         // Set tab if specified
-        const tab = params.tab
+        const tab = patch.tab
         if (tab) {
             if (!this.availableTabs.includes(tab as GrapherTabOption))
                 console.error("Unexpected tab: " + tab)
             else this.tab = tab as GrapherTabOption
         }
 
-        const overlay = params.overlay
+        const overlay = patch.overlay
         if (overlay) {
             if (!this.availableTabs.includes(overlay as GrapherTabOption))
                 console.error("Unexpected overlay: " + overlay)
@@ -424,54 +440,56 @@ export class Grapher
         }
 
         // Stack mode for bar and stacked area charts
-        this.stackMode = (params.stackMode ?? this.stackMode) as StackMode
+        this.stackMode = (patch.stackMode ?? this.stackMode) as StackMode
 
         this.zoomToSelection =
-            params.zoomToSelection === "true" ? true : this.zoomToSelection
+            patch.zoomToSelection === "true" ? true : this.zoomToSelection
 
-        this.minPopulationFilter = params.minPopulationFilter
-            ? parseInt(params.minPopulationFilter)
+        this.minPopulationFilter = patch.minPopulationFilter
+            ? parseInt(patch.minPopulationFilter)
             : this.minPopulationFilter
 
         // Axis scale mode
-        const xScaleType = params.xScale
+        const xScaleType = patch.xScale
         if (xScaleType) {
             if (xScaleType === ScaleType.linear || xScaleType === ScaleType.log)
                 this.xAxis.scaleType = xScaleType
             else console.error("Unexpected xScale: " + xScaleType)
         }
 
-        const yScaleType = params.yScale
+        const yScaleType = patch.yScale
         if (yScaleType) {
             if (yScaleType === ScaleType.linear || yScaleType === ScaleType.log)
                 this.yAxis.scaleType = yScaleType
             else console.error("Unexpected xScale: " + yScaleType)
         }
 
-        const time = params.time
-        if (time !== undefined && time !== "")
-            this.setTimeFromTimeQueryParam(time)
+        const time = patch.time
+        if (time !== undefined && time !== "") {
+            const value = getTimeDomainFromQueryString(time).map(
+                (time) => findClosestTime(this.times, time) ?? time
+            ) as TimeBounds
+            if (this.isOnMapTab) this.map.time = value[1]
+            else {
+                this.minTime = value[0]
+                this.maxTime = value[1]
+            }
+        }
 
-        const endpointsOnly = params.endpointsOnly
+        const endpointsOnly = patch.endpointsOnly
         if (endpointsOnly !== undefined)
             this.compareEndPointsOnly = endpointsOnly === "1" ? true : undefined
 
-        const region = params.region
+        const region = patch.region
         if (region !== undefined)
             this.map.projection = region as MapProjectionName
 
-        if (params.selection)
+        if (patch.selection)
             this.selection.setSelectedEntities(
-                typeof params.selection === "string"
-                    ? EntityUrlBuilder.queryParamToEntityNames(params.selection)
-                    : params.selection
+                typeof patch.selection === "string"
+                    ? EntityUrlBuilder.queryParamToEntityNames(patch.selection)
+                    : patch.selection
             )
-    }
-
-    @action.bound private setTimeFromTimeQueryParam(time: string) {
-        this.timelineHandleTimeBounds = getTimeDomainFromQueryString(time).map(
-            (time) => findClosestTime(this.times, time) ?? time
-        ) as TimeBounds
     }
 
     @computed private get isChartOrMapTab() {
@@ -797,12 +815,12 @@ export class Grapher
 
     set startHandleTimeBound(newValue: TimeBound) {
         if (this.isOnMapTab)
-            this.timelineHandleTimeBounds = [newValue, newValue]
+            this.setTimelineHandleTimeBoundsCommand([newValue, newValue])
         else
-            this.timelineHandleTimeBounds = [
+            this.setTimelineHandleTimeBoundsCommand([
                 newValue,
                 this.timelineHandleTimeBounds[1],
-            ]
+            ])
     }
 
     set endHandleTimeBound(newValue: TimeBound) {
@@ -810,12 +828,12 @@ export class Grapher
             this.isOnMapTab ||
             this.isDiscreteBarOrLineChartTransformedIntoDiscreteBar
         )
-            this.timelineHandleTimeBounds = [newValue, newValue]
+            this.setTimelineHandleTimeBoundsCommand([newValue, newValue])
         else
-            this.timelineHandleTimeBounds = [
+            this.setTimelineHandleTimeBoundsCommand([
                 this.timelineHandleTimeBounds[0],
                 newValue,
-            ]
+            ])
     }
 
     @computed get endHandleTimeBound(): TimeBound {
@@ -954,7 +972,7 @@ export class Grapher
         return this.overlay ? this.overlay : this.tab
     }
 
-    set currentTab(desiredTab) {
+    @action.bound changeTabCommand(desiredTab: GrapherTabOption) {
         if (
             desiredTab === GrapherTabOption.chart ||
             desiredTab === GrapherTabOption.map ||
@@ -962,13 +980,14 @@ export class Grapher
         ) {
             this.tab = desiredTab
             this.overlay = undefined
-            return
+        } else {
+            // table tab cannot be downloaded, so revert to default tab
+            if (desiredTab === GrapherTabOption.download && this.isOnTableTab)
+                this.tab = this.authorsVersion.tab ?? GrapherTabOption.chart
+            this.overlay = desiredTab
         }
 
-        // table tab cannot be downloaded, so revert to default tab
-        if (desiredTab === GrapherTabOption.download && this.isOnTableTab)
-            this.tab = this.authorsVersion.tab ?? GrapherTabOption.chart
-        this.overlay = desiredTab
+        this.updatePatch()
     }
 
     @computed get timelineHandleTimeBounds(): TimeBounds {
@@ -983,13 +1002,13 @@ export class Grapher
         ]
     }
 
-    set timelineHandleTimeBounds(value: TimeBounds) {
-        if (this.isOnMapTab) {
-            this.map.time = value[1]
-        } else {
+    @action.bound setTimelineHandleTimeBoundsCommand(value: TimeBounds) {
+        if (this.isOnMapTab) this.map.time = value[1]
+        else {
             this.minTime = value[0]
             this.maxTime = value[1]
         }
+        this.updatePatch()
     }
 
     // Get the dimension slots appropriate for this type of chart
@@ -1589,7 +1608,7 @@ export class Grapher
     }
 
     @action.bound private toggleTabCommand() {
-        this.currentTab = next(this.availableTabs, this.currentTab)
+        this.changeTabCommand(next(this.availableTabs, this.currentTab))
     }
 
     @action.bound private togglePlayingCommand() {
@@ -1600,7 +1619,9 @@ export class Grapher
         this.manager.selection ??
         new SelectionArray(
             this.props.selectedEntityNames ?? [],
-            this.props.table?.availableEntities ?? []
+            this.props.table?.availableEntities ?? [],
+            undefined,
+            () => this.updatePatch()
         )
 
     @computed get availableEntities() {
@@ -1650,7 +1671,7 @@ export class Grapher
             },
             {
                 combo: "f",
-                fn: () => this.toggleFacetStrategy(),
+                fn: () => this.toggleFacetStrategyCommand(),
                 title: `Toggle Faceting`,
                 category: "Chart",
             },
@@ -1666,7 +1687,7 @@ export class Grapher
             },
             {
                 combo: "z",
-                fn: () => this.toggleTimelineCommand(),
+                fn: () => this.flipThroughTimelineExtremesCommand(),
                 title: "Latest/Earliest/All period",
                 category: "Timeline",
             },
@@ -1699,27 +1720,49 @@ export class Grapher
 
     @observable slideShow?: SlideShowController
 
-    @action.bound private toggleTimelineCommand() {
+    @action.bound private flipThroughTimelineExtremesCommand() {
         // Todo: add tests for this
-        this.setTimeFromTimeQueryParam(
-            next(["latest", "earliest", ".."], this.timeParam!)
+        const time = next(["latest", "earliest", ".."], this.timeParam!)
+
+        this.setTimelineHandleTimeBoundsCommand(
+            getTimeDomainFromQueryString(time).map(
+                (time) => findClosestTime(this.times, time) ?? time
+            ) as TimeBounds
         )
     }
 
     @action.bound private toggleFilterAllCommand() {
-        this.minPopulationFilter =
+        this.changeMinPopulationFilterCommand(
             this.minPopulationFilter === 2e9 ? undefined : 2e9
-    }
-
-    @action.bound private toggleYScaleTypeCommand() {
-        this.yAxis.scaleType = next(
-            [ScaleType.linear, ScaleType.log],
-            this.yAxis.scaleType
         )
     }
 
-    @action.bound private toggleFacetStrategy() {
-        this.facet = next(this.availableFacetStrategies, this.facet)
+    @action.bound private toggleYScaleTypeCommand() {
+        this.changeScaleTypeCommand(
+            this.yAxis,
+            next([ScaleType.linear, ScaleType.log], this.yAxis.scaleType)
+        )
+    }
+
+    @action.bound changeScaleTypeCommand(
+        axisConfig: AxisConfig,
+        newScaleType?: ScaleType
+    ) {
+        axisConfig.scaleType = newScaleType
+        this.updatePatch()
+    }
+
+    @action.bound private toggleFacetStrategyCommand() {
+        this.changeFacetStrategyCommand(
+            next(this.availableFacetStrategies, this.facet)
+        )
+    }
+
+    @action.bound private changeFacetStrategyCommand(
+        newStrategy?: FacetStrategy
+    ) {
+        this.facet = newStrategy
+        this.updatePatch()
     }
 
     @observable facet?: FacetStrategy
@@ -1903,11 +1946,13 @@ export class Grapher
         // There is a surprisingly considerable performance overhead to updating the url
         // while animating, so we debounce to allow e.g. smoother timelines
         const pushParams = () =>
-            setWindowQueryStr(queryParamsToStr(this.changedParams))
+            this.encodedQueryStr
+                ? setWindowQueryStr(this.encodedQueryStr)
+                : null
         const debouncedPushParams = debounce(pushParams, 100)
 
         reaction(
-            () => this.changedParams,
+            () => this.patch,
             () => (this.debounceMode ? debouncedPushParams() : pushParams())
         )
 
@@ -2021,19 +2066,47 @@ export class Grapher
 
     debounceMode = false
 
-    @computed.struct get allParams() {
-        const params: GrapherQueryParams = {}
+    @computed get allParams() {
+        const params: GrapherPatchObject = {}
         params.tab = this.tab
+        params.stackMode = this.stackMode
+        params.minPopulationFilter = this.minPopulationFilter?.toString()
+        params.zoomToSelection = this.zoomToSelection ? "true" : undefined
+        params.region = this.map.projection
+        params.endpointsOnly = this.compareEndPointsOnly ? "1" : "0"
+        params.selection = this.selectedEntitiesParamIfDifferentThanAuthors
         params.xScale = this.xAxis.scaleType
         params.yScale = this.yAxis.scaleType
-        params.stackMode = this.stackMode
-        params.zoomToSelection = this.zoomToSelection ? "true" : undefined
-        params.minPopulationFilter = this.minPopulationFilter?.toString()
-        params.endpointsOnly = this.compareEndPointsOnly ? "1" : "0"
         params.time = this.timeParam
-        params.region = this.map.projection
-        params.selection = this.selectedEntitiesParamIfDifferentThanAuthors
         return params
+    }
+
+    @computed get timeParam() {
+        const formatAsDay = this.table.hasDayColumn
+        if (this.isOnMapTab && this.map.time !== undefined)
+            return timeBoundToTimeBoundString(this.map.time, formatAsDay)
+
+        const [startHandleTime, rightHandleTime] = this.timelineHandleTimeBounds
+        const startTimeBoundString = timeBoundToTimeBoundString(
+            startHandleTime,
+            formatAsDay
+        )
+        return startHandleTime === rightHandleTime
+            ? startTimeBoundString
+            : `${startTimeBoundString}..${timeBoundToTimeBoundString(
+                  rightHandleTime,
+                  formatAsDay
+              )}`
+    }
+
+    @action.bound changeZoomToSelectionCommand(newValue?: boolean) {
+        this.zoomToSelection = newValue
+        this.updatePatch()
+    }
+
+    @action.bound changeStackModeCommand(newMode: StackMode) {
+        this.stackMode = newMode
+        this.updatePatch()
     }
 
     // Todo: move all Graphers to git. Upgrade the selection property; delete the entityId stuff, and remove this.
@@ -2059,18 +2132,15 @@ export class Grapher
         return undefined
     }
 
-    // Autocomputed url params to reflect difference between current grapher state
-    // and original config state
-    @computed get changedParams() {
-        return deleteRuntimeAndUnchangedProps<GrapherQueryParams>(
-            this.allParams,
-            this.authorsVersion.allParams
-        )
+    @action.bound private updatePatch() {
+        const changedParams = deleteRuntimeAndUnchangedProps<
+            GrapherPatchObject
+        >(this.allParams, this.authorsVersion.allParams)
+        this.patch = new Patch(changedParams as any)
     }
 
-    @computed get patch() {
-        return new Patch(this.changedParams)
-    }
+    // todo: init with initial patch
+    @observable patch = new Patch()
 
     // If you want to compare current state against the published grapher.
     @computed private get authorsVersion() {
@@ -2081,8 +2151,9 @@ export class Grapher
         })
     }
 
-    @computed get queryStr() {
-        return queryParamsToStr(this.changedParams)
+    @computed get encodedQueryStr() {
+        const encodedPatch = this.patch.uriEncodedString
+        return encodedPatch ? `?${PATCH_QUERY_PARAM}=` + encodedPatch : ""
     }
 
     @computed get baseUrl() {
@@ -2099,43 +2170,8 @@ export class Grapher
     @computed get canonicalUrl() {
         return (
             this.manager.canonicalUrl ??
-            (this.baseUrl ? this.baseUrl + this.queryStr : undefined)
+            (this.baseUrl ? this.baseUrl + this.encodedQueryStr : undefined)
         )
-    }
-
-    @computed private get hasUserChangedTimeHandles() {
-        const authorsVersion = this.authorsVersion
-        return (
-            this.minTime !== authorsVersion.minTime ||
-            this.maxTime !== authorsVersion.maxTime
-        )
-    }
-
-    @computed private get hasUserChangedMapTimeHandle() {
-        return this.map.time !== this.authorsVersion.map.time
-    }
-
-    @computed get timeParam() {
-        const formatAsDay = this.table.hasDayColumn
-        if (
-            this.isOnMapTab &&
-            this.map.time !== undefined &&
-            this.hasUserChangedMapTimeHandle
-        )
-            return timeBoundToTimeBoundString(this.map.time, formatAsDay)
-        if (!this.hasUserChangedTimeHandles) return undefined
-
-        const [startHandleTime, rightHandleTime] = this.timelineHandleTimeBounds
-        const startTimeBoundString = timeBoundToTimeBoundString(
-            startHandleTime,
-            formatAsDay
-        )
-        return startHandleTime === rightHandleTime
-            ? startTimeBoundString
-            : `${startTimeBoundString}..${timeBoundToTimeBoundString(
-                  rightHandleTime,
-                  formatAsDay
-              )}`
     }
 
     msPerTick = DEFAULT_MS_PER_TICK

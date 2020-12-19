@@ -1,13 +1,10 @@
 type PatchEncodedString = string
 type PatchCompatibleArray = string[][]
-type PatchCompatibleObjectLiteral = {
-    [identifierCell: string]: string | string[]
+export type PatchObjectLiteral = {
+    [identifierCell: string]: string | undefined | string[]
 }
 
-type PatchInput =
-    | PatchEncodedString
-    | PatchCompatibleArray
-    | PatchCompatibleObjectLiteral
+type PatchInput = PatchEncodedString | PatchCompatibleArray | PatchObjectLiteral
 
 interface PatchGrammar {
     rowDelimiter: string
@@ -36,10 +33,10 @@ export class Patch {
         else this.uriEncodedString = this.objectToEncodedString(patchInput)
     }
 
-    private objectToEncodedString(obj: PatchCompatibleObjectLiteral) {
+    private objectToEncodedString(obj: PatchObjectLiteral) {
         return Object.keys(obj)
             .map((identifierCell) => {
-                const value = obj[identifierCell]
+                const value = obj[identifierCell] ?? ""
                 const valueCells = value instanceof Array ? value : [value]
                 const row = [identifierCell, ...valueCells].map((cell) =>
                     this.encodeCell(cell)
@@ -69,8 +66,9 @@ export class Patch {
             )
     }
 
-    get object(): PatchCompatibleObjectLiteral {
-        const patchObj: PatchCompatibleObjectLiteral = {}
+    // Todo: can we add a generic to get an interface on this thing?
+    get object(): PatchObjectLiteral {
+        const patchObj: PatchObjectLiteral = {}
         this.array.forEach((cells) => {
             const identifierCell = cells.shift() as string
             patchObj[identifierCell] = cells.length > 1 ? cells : cells[0] // If a single value, collapse to a simple tuple. todo: sure about this design?

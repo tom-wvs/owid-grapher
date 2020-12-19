@@ -1,6 +1,6 @@
 import { BASE_FONT_SIZE, ScaleType } from "../core/GrapherConstants"
 import { extend, trimObject } from "../../clientUtils/Util"
-import { observable, computed } from "mobx"
+import { observable, computed, action } from "mobx"
 import { HorizontalAxis, VerticalAxis } from "./Axis"
 import {
     deleteRuntimeAndUnchangedProps,
@@ -9,8 +9,12 @@ import {
 import { AxisConfigInterface } from "./AxisConfigInterface"
 import { ScaleSelectorManager } from "../controls/ScaleSelector"
 
-export interface FontSizeManager {
+export interface AxisConfigManager {
     fontSize: number
+    changeScaleTypeCommand?: (
+        axisConfig: AxisConfig,
+        newScaleType?: ScaleType
+    ) => void
 }
 
 class AxisConfigDefaults {
@@ -28,15 +32,23 @@ export class AxisConfig
     // todo: test/refactor
     constructor(
         props?: AxisConfigInterface,
-        fontSizeManager?: FontSizeManager
+        axisConfigManager?: AxisConfigManager
     ) {
         super()
         this.updateFromObject(props)
-        this.fontSizeManager = fontSizeManager
+        this.axisConfigManager = axisConfigManager
     }
 
-    private fontSizeManager?: FontSizeManager
+    private axisConfigManager?: AxisConfigManager
     @observable hideAxis = false
+
+    @action.bound changeScaleTypeCommand(newScaleType?: ScaleType) {
+        if (
+            this.axisConfigManager &&
+            this.axisConfigManager.changeScaleTypeCommand
+        )
+            this.axisConfigManager.changeScaleTypeCommand(this, newScaleType)
+    }
 
     // todo: test/refactor
     updateFromObject(props?: AxisConfigInterface) {
@@ -59,7 +71,7 @@ export class AxisConfig
     }
 
     @computed get fontSize() {
-        return this.fontSizeManager?.fontSize || BASE_FONT_SIZE
+        return this.axisConfigManager?.fontSize || BASE_FONT_SIZE
     }
 
     // A log scale domain cannot have values <= 0, so we double check here

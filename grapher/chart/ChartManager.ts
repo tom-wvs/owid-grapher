@@ -37,6 +37,8 @@ export interface ChartManager {
     zoomToSelection?: boolean
     matchingEntitiesOnly?: boolean
 
+    changeEndPointsOnlyCommand?: (newValue?: boolean) => void
+
     colorScale?: ColorScaleConfigInterface
 
     yAxis?: AxisConfig // Remove? Just pass interfaces?

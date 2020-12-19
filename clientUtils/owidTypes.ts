@@ -1,6 +1,8 @@
 // todo: remove when we ditch Year and YearIsDay
 export const EPOCH_DATE = "2020-01-21"
 
+export const PATCH_QUERY_PARAM = "patch"
+
 export interface Box {
     x: number
     y: number
