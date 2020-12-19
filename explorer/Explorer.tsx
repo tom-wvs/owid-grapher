@@ -37,11 +37,7 @@ import {
 } from "./ExplorerConstants"
 import { EntityPickerManager } from "../grapher/controls/entityPicker/EntityPickerConstants"
 import { SelectionArray } from "../grapher/selection/SelectionArray"
-import {
-    ColumnSlug,
-    SortOrder,
-    TableSlug,
-} from "../coreTable/CoreTableConstants"
+import { TableSlug } from "../coreTable/CoreTableConstants"
 import { isNotErrorValue } from "../coreTable/ErrorValues"
 import { Bounds, DEFAULT_BOUNDS } from "../clientUtils/Bounds"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
@@ -60,11 +56,6 @@ interface ExplorerProps extends SerializedGridProgram {
     isEmbeddedInAnOwidPage?: boolean
     isInStandalonePage?: boolean
     canonicalUrl?: string
-}
-
-interface ExplorerPatchObject extends GrapherQueryParams {
-    pickerSort?: SortOrder
-    pickerMetric?: ColumnSlug
 }
 
 const renderLivePreviewVersion = (props: ExplorerProps) => {
@@ -122,15 +113,16 @@ export class Explorer
         )
     }
 
-    explorerProgram = ExplorerProgram.fromJson(this.props).initDecisionMatrix(
+    private authoredExplorer = ExplorerProgram.fromJson(this.props)
+    explorerProgram = this.authoredExplorer.initDecisionMatrix(
         this.props.uriEncodedPatch
     )
 
     private initialPatchObject = new Patch(this.props.uriEncodedPatch)
-        .object as ExplorerPatchObject
+        .object as GrapherQueryParams
 
-    @observable entityPickerMetric? = this.initialPatchObject.pickerMetric
-    @observable entityPickerSort? = this.initialPatchObject.pickerSort
+    @observable entityPickerSlug? = this.explorerProgram.pickerSlug
+    @observable entityPickerSort? = this.explorerProgram.pickerSortOrder
 
     selection = new SelectionArray(
         this.explorerProgram.selection,
@@ -329,40 +321,24 @@ export class Explorer
         return encodedPatch ? `?${PATCH_QUERY_PARAM}=` + encodedPatch : ""
     }
 
-    @computed get patchObject(): ExplorerPatchObject {
+    @computed get patchObject(): GrapherQueryParams {
         if (!this.grapher) return {}
 
-        const { decisionMatrix } = this.explorerProgram
-
-        const decisionsPatchObject: any = {
-            ...decisionMatrix.currentPatch,
-        }
-
-        // Remove any unchanged default props
-        const clone = this.explorerProgram.clone.decisionMatrix.currentPatch
-        Object.keys(decisionsPatchObject).forEach((key) => {
-            if (clone[key] === decisionsPatchObject[key])
-                delete decisionsPatchObject[key]
-        })
+        const { patchObject } = this.explorerProgram
 
         if (window.location.href.includes(EXPLORERS_PREVIEW_ROUTE))
             localStorage.setItem(
                 UNSAVED_EXPLORER_PREVIEW_PATCH + this.explorerProgram.slug,
-                new Patch(decisionsPatchObject).uriEncodedString
+                new Patch(patchObject).uriEncodedString
             )
 
-        const explorerPatchObject = {
+        const combinedPatchObject = {
             ...this.grapherParamsChangedSincePageLoad,
             ...this.grapher.changedParams,
-            selection: this.selection.hasSelection
-                ? this.selection.selectedEntityNames
-                : undefined,
-            pickerSort: this.entityPickerSort,
-            pickerMetric: this.entityPickerMetric,
-            ...decisionsPatchObject,
+            ...patchObject,
         }
 
-        return trimObject(explorerPatchObject)
+        return trimObject(combinedPatchObject)
     }
 
     /**
@@ -376,7 +352,7 @@ export class Explorer
      *
      * To accomplish this, we need to maintain a little state containing all the url params that have changed during this user's session.
      */
-    private grapherParamsChangedSincePageLoad: ExplorerPatchObject = {}
+    private grapherParamsChangedSincePageLoad: GrapherQueryParams = {}
 
     private get panels() {
         return this.explorerProgram.decisionMatrix.choicesWithAvailability.map(

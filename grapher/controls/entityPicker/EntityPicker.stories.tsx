@@ -47,7 +47,7 @@ class SomeThingWithAPicker
     implements EntityPickerManager {
     entityPickerTable = SynthesizeGDPTable({ entityCount: 30 }, 1)
 
-    @observable entityPickerMetric?: ColumnSlug
+    @observable entityPickerSlug?: ColumnSlug
     @observable entityPickerSort?: SortOrder
 
     @computed get pickerColumnSlugs() {

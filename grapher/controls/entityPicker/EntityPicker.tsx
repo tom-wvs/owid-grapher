@@ -100,8 +100,8 @@ export class EntityPicker extends React.Component<{
         return this.props.manager || ({} as EntityPickerManager)
     }
 
-    @computed private get metric() {
-        return this.manager.entityPickerMetric
+    @computed private get slug() {
+        return this.manager.entityPickerSlug
     }
 
     @computed private get sortOrder(): SortOrder {
@@ -129,7 +129,7 @@ export class EntityPicker extends React.Component<{
 
     @computed private get activePickerMetricColumn() {
         return this.availablePickerColumns.find(
-            (col) => col.slug === this.metric
+            (col) => col.slug === this.slug
         )!
     }
 
@@ -379,7 +379,7 @@ export class EntityPicker extends React.Component<{
     }
 
     @action private updateMetric(columnSlug: ColumnSlug) {
-        this.manager.entityPickerMetric = columnSlug
+        this.manager.entityPickerSlug = columnSlug
         this.manager.entityPickerSort = this.isActivePickerColumnTypeNumeric
             ? SortOrder.desc
             : SortOrder.asc
@@ -404,7 +404,7 @@ export class EntityPicker extends React.Component<{
                     className="metricDropdown"
                     options={this.metricOptions}
                     value={this.metricOptions.find(
-                        (option) => option.value === this.metric
+                        (option) => option.value === this.slug
                     )}
                     onChange={(option) => {
                         const value = first(asArray(option))?.value

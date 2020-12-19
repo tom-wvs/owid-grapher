@@ -1,4 +1,4 @@
-import { SubNavId } from "../clientUtils/owidTypes"
+import { SortOrder, SubNavId } from "../clientUtils/owidTypes"
 import {
     CellDef,
     BooleanCellDef,
@@ -147,7 +147,24 @@ export const ExplorerGrammar: Grammar = {
         keyword: "pickerColumnSlugs",
         valuePlaceholder: "gdp population gdp_per_capita",
         description:
-            "You can manually set the column slug(s) to show in the entity picker or else they will be automatically chosen.",
+            "You can manually set which column slug(s) to show in the entity picker or else they will be automatically chosen.",
+    },
+    pickerSlug: {
+        ...SlugDeclarationCellDef,
+        keyword: "pickerSlug",
+        valuePlaceholder: "population",
+        description:
+            "You can manually set the selected picker column slug or it will be the first available one.",
+    },
+    pickerSortOrder: {
+        ...EnumCellDef,
+        terminalOptions: Object.values(SortOrder).map((keyword) => ({
+            keyword,
+            description: "",
+            cssClass: "",
+        })),
+        keyword: "pickerSort",
+        description: "Which sort order to use for the picker",
     },
     hideAlertBanner: {
         ...BooleanCellDef,

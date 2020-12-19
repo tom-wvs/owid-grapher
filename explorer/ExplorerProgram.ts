@@ -1,7 +1,7 @@
 import { trimObject } from "../clientUtils/Util"
 import { queryParamsToStr } from "../clientUtils/url"
 import { action, observable, computed } from "mobx"
-import { GitCommit, SubNavId } from "../clientUtils/owidTypes"
+import { GitCommit, SortOrder, SubNavId } from "../clientUtils/owidTypes"
 import {
     ExplorerControlType,
     ExplorerChoiceOption,
@@ -82,6 +82,26 @@ export class ExplorerProgram extends GridProgram {
         return this.slug + EXPLORER_FILE_SUFFIX
     }
 
+    get patchObject() {
+        const { decisionMatrix, pickerSlug, pickerSortOrder, selection } = this
+
+        // I guess we flatten decisionMatrix onto this.
+        const patchObject: any = {
+            ...decisionMatrix.currentPatch,
+            pickerSlug,
+            pickerSortOrder,
+            selection,
+        }
+
+        // Remove any unchanged default props
+        const clone = this.clone.decisionMatrix.currentPatch
+        Object.keys(patchObject).forEach((key) => {
+            if (patchObject[key] === clone[key]) delete patchObject[key]
+        })
+
+        return trimObject(patchObject)
+    }
+
     initDecisionMatrix(uriEncodedPatch = "") {
         this.decisionMatrix.setValuesFromPatch(uriEncodedPatch)
         return this
@@ -155,6 +175,16 @@ export class ExplorerProgram extends GridProgram {
             ExplorerGrammar.pickerColumnSlugs.keyword
         )
         return slugs ? slugs.split(" ") : undefined
+    }
+
+    get pickerSlug() {
+        return this.getLineValue(ExplorerGrammar.pickerSlug.keyword)
+    }
+
+    get pickerSortOrder() {
+        return this.getLineValue(
+            ExplorerGrammar.pickerSortOrder.keyword
+        ) as SortOrder
     }
 
     get hideControls() {

@@ -4,7 +4,7 @@ import { GrapherAnalytics } from "../../core/GrapherAnalytics"
 import { SelectionArray } from "../../selection/SelectionArray"
 
 export interface EntityPickerManager {
-    entityPickerMetric?: ColumnSlug
+    entityPickerSlug?: ColumnSlug
     entityPickerSort?: SortOrder
     requiredColumnSlugs?: ColumnSlug[] // If this param is provided, and an entity does not have a value for 1+, it will show as unavailable.
     pickerColumnSlugs?: ColumnSlug[] // These are the columns that can be used for sorting entities.

@@ -155,6 +155,7 @@ import {
     ADMIN_BASE_URL,
     BAKED_GRAPHER_URL,
 } from "../../settings/clientSettings"
+import { Patch } from "../patch/Patch"
 
 declare const window: any
 
@@ -2060,11 +2061,15 @@ export class Grapher
 
     // Autocomputed url params to reflect difference between current grapher state
     // and original config state
-    @computed.struct get changedParams() {
+    @computed get changedParams() {
         return deleteRuntimeAndUnchangedProps<GrapherQueryParams>(
             this.allParams,
             this.authorsVersion.allParams
         )
+    }
+
+    @computed get patch() {
+        return new Patch(this.changedParams)
     }
 
     // If you want to compare current state against the published grapher.
