@@ -61,11 +61,11 @@ import {
     minTimeBoundFromJSONOrNegativeInfinity,
     maxTimeBoundFromJSONOrPositiveInfinity,
     TimeBounds,
-    getTimeDomainFromQueryString,
     TimeBound,
     minTimeToJSON,
     maxTimeToJSON,
-    timeBoundToTimeBoundString,
+    TimeBoundValue,
+    parseTimeURIComponent,
 } from "../../clientUtils/TimeBounds"
 import { strToQueryParams, setWindowQueryStr } from "../../clientUtils/url"
 import { populationMap } from "../../coreTable/PopulationMap"
@@ -220,49 +220,56 @@ export class Grapher
         DataTableManager,
         ScatterPlotManager,
         MapChartManager {
-    @observable.ref type = ChartTypeName.LineChart
-    @observable.ref id?: number = undefined
-    @observable.ref version = 1
-    @observable.ref slug?: string = undefined
-    @observable.ref title?: string = undefined
-    @observable.ref subtitle = ""
-    @observable.ref sourceDesc?: string = undefined
-    @observable.ref note = ""
-    @observable.ref hideTitleAnnotation?: boolean = undefined
-    @observable.ref minTime?: TimeBound = undefined
-    @observable.ref maxTime?: TimeBound = undefined
-    @observable.ref timelineMinTime?: Time = undefined
-    @observable.ref timelineMaxTime?: Time = undefined
-    @observable.ref addCountryMode = EntitySelectionMode.MultipleEntities
-    @observable.ref highlightToggle?: HighlightToggleConfig = undefined
-    @observable.ref stackMode = StackMode.absolute
-    @observable.ref hideLegend?: boolean = false
-    @observable.ref logo?: LogoOption = undefined
-    @observable.ref hideLogo?: boolean = undefined
-    @observable.ref hideRelativeToggle? = true
-    @observable.ref entityType = "country"
-    @observable.ref entityTypePlural = "countries"
-    @observable.ref hideTimeline?: boolean = undefined
-    @observable.ref zoomToSelection?: boolean = undefined
-    @observable.ref minPopulationFilter?: number = undefined
-    @observable.ref showYearLabels?: boolean = undefined // Always show year in labels for bar charts
-    @observable.ref hasChartTab: boolean = true
-    @observable.ref hasMapTab: boolean = false
-    @observable.ref tab = GrapherTabOption.chart
-    @observable.ref overlay?: GrapherTabOption = undefined
-    @observable.ref internalNotes = ""
-    @observable.ref variantName?: string = undefined
-    @observable.ref originUrl = ""
-    @observable.ref isPublished?: boolean = undefined
-    @observable.ref baseColorScheme?: ColorSchemeName = undefined
-    @observable.ref invertColorScheme?: boolean = undefined
-    @observable.ref hideLinesOutsideTolerance?: boolean = undefined
+    @observable type = ChartTypeName.LineChart
+    @observable id?: number = undefined
+    @observable version = 1
+    @observable slug?: string = undefined
+    @observable title?: string = undefined
+    @observable subtitle = ""
+    @observable sourceDesc?: string = undefined
+    @observable note = ""
+    @observable hideTitleAnnotation?: boolean = undefined
+    @observable startTime?: TimeBound = undefined
+    @observable endTime?: TimeBound = undefined
+
+    @observable minTimeFilter?: Time = undefined
+    @observable maxTimeFilter?: Time = undefined
+    @observable addCountryMode = EntitySelectionMode.MultipleEntities
+    @observable highlightToggle?: HighlightToggleConfig = undefined
+    @observable stackMode = StackMode.absolute
+    @observable hideLegend?: boolean = false
+    @observable logo?: LogoOption = undefined
+    @observable hideLogo?: boolean = undefined
+    @observable hideRelativeToggle? = true
+    @observable entityType = "country"
+    @observable entityTypePlural = "countries"
+    @observable hideTimeline?: boolean = undefined
+    @observable zoomToSelection?: boolean = undefined
+    @observable minPopulationFilter?: number = undefined
+    @observable showYearLabels?: boolean = undefined // Always show year in labels for bar charts
+    @observable hasChartTab: boolean = true
+    @observable hasMapTab: boolean = false
+    @observable tab = GrapherTabOption.chart
+    @observable overlay?: GrapherTabOption = undefined
+    @observable internalNotes = ""
+    @observable variantName?: string = undefined
+    @observable originUrl = ""
+    @observable isPublished?: boolean = undefined
+    @observable baseColorScheme?: ColorSchemeName = undefined
+    @observable invertColorScheme?: boolean = undefined
+    @observable hideLinesOutsideTolerance?: boolean = undefined
     @observable hideConnectedScatterLines?: boolean = undefined // Hides lines between points when timeline spans multiple years. Requested by core-econ for certain charts
     @observable
     scatterPointLabelStrategy?: ScatterPointLabelStrategy = undefined
-    @observable.ref compareEndPointsOnly?: boolean = undefined
-    @observable.ref matchingEntitiesOnly?: boolean = undefined
+    @observable compareEndPointsOnly?: boolean = undefined
+    @observable matchingEntitiesOnly?: boolean = undefined
 
+    @observable mapTime?: TimeBound = undefined
+    @observable mapTimeTolerance?: number = undefined
+    @observable mapProjection = MapProjectionName.World
+
+    @observable xScale?: ScaleType = undefined
+    @observable yScale?: ScaleType = undefined
     @observable.ref xAxis: AxisConfig = new AxisConfig(undefined, this)
     @observable.ref yAxis: AxisConfig = new AxisConfig(undefined, this)
     @observable colorScale = new ColorScaleConfig()
@@ -364,8 +371,8 @@ export class Grapher
         if (obj.stackMode === null) delete obj.stackMode
 
         // JSON doesn't support Infinity, so we use strings instead.
-        if (obj.minTime) obj.minTime = minTimeToJSON(this.minTime) as any
-        if (obj.maxTime) obj.maxTime = maxTimeToJSON(this.maxTime) as any
+        if (obj.startTime) obj.startTime = minTimeToJSON(this.startTime) as any
+        if (obj.endTime) obj.endTime = maxTimeToJSON(this.endTime) as any
 
         // todo: remove dimensions concept
         if (this.legacyConfigAsAuthored?.dimensions)
@@ -392,12 +399,11 @@ export class Grapher
         // Regression fix: some legacies have this set to Null. Todo: clean DB.
         if (obj.originUrl === null) this.originUrl = ""
 
-        const mapTime = obj.map?.time
-        this.map.time = maxTimeBoundFromJSONOrPositiveInfinity(mapTime)
+        this.mapTime = maxTimeBoundFromJSONOrPositiveInfinity(obj.mapTime)
 
         // JSON doesn't support Infinity, so we use strings instead.
-        this.minTime = minTimeBoundFromJSONOrNegativeInfinity(obj.minTime)
-        this.maxTime = maxTimeBoundFromJSONOrPositiveInfinity(obj.maxTime)
+        this.startTime = minTimeBoundFromJSONOrNegativeInfinity(obj.startTime)
+        this.endTime = maxTimeBoundFromJSONOrPositiveInfinity(obj.endTime)
 
         // Todo: remove once we are more RAII.
         if (obj?.dimensions?.length)
@@ -413,7 +419,7 @@ export class Grapher
     @action.bound @updatesPatch changeMapProjectionCommand(
         value: MapProjectionName
     ) {
-        this.mapConfig.projection = value
+        this.mapProjection = value
     }
 
     @action.bound @updatesPatch changeEndPointsOnlyCommand(newValue?: boolean) {
@@ -461,17 +467,14 @@ export class Grapher
             else console.error("Unexpected xScale: " + yScaleType)
         }
 
-        const time = patch.time
-        if (time !== undefined && time !== "") {
-            const value = getTimeDomainFromQueryString(time).map(
-                (time) => findClosestTime(this.times, time) ?? time
-            ) as TimeBounds
-            if (this.isOnMapTab) this.map.time = value[1]
-            else {
-                this.minTime = value[0]
-                this.maxTime = value[1]
-            }
-        }
+        // todo: do we need findClosestTime?
+        this.startTime =
+            parseTimeURIComponent(patch.startTime) ??
+            TimeBoundValue.negativeInfinity
+        this.endTime =
+            parseTimeURIComponent(patch.endTime) ??
+            TimeBoundValue.positiveInfinity
+        this.mapTime = parseTimeURIComponent(patch.mapTime)
 
         const endpointsOnly = patch.endpointsOnly
         if (endpointsOnly !== undefined)
@@ -479,7 +482,7 @@ export class Grapher
 
         const region = patch.region
         if (region !== undefined)
-            this.map.projection = region as MapProjectionName
+            this.mapProjection = region as MapProjectionName
 
         if (patch.selection)
             this.selection.setSelectedEntities(
@@ -505,13 +508,13 @@ export class Grapher
     @computed private get tableAfterAuthorTimelineFilter() {
         const table = this.inputTable
         if (
-            this.timelineMinTime === undefined &&
-            this.timelineMaxTime === undefined
+            this.minTimeFilter === undefined &&
+            this.maxTimeFilter === undefined
         )
             return table
         return table.filterByTimeRange(
-            this.timelineMinTime ?? -Infinity,
-            this.timelineMaxTime ?? Infinity
+            this.minTimeFilter ?? -Infinity,
+            this.maxTimeFilter ?? Infinity
         )
     }
 
@@ -565,28 +568,38 @@ export class Grapher
 
     @computed
     private get tableAfterAllTransformsAndFilters() {
-        const { startTime, endTime } = this
+        const { timeClosestToStartTime, timeClosestToEndTime } = this
         const table = this
             .tableAfterAuthorTimelineAndActiveChartTransformAndPopulationFilter
 
-        if (startTime === undefined || endTime === undefined) return table
+        if (
+            timeClosestToStartTime === undefined ||
+            timeClosestToEndTime === undefined
+        )
+            return table
 
         if (this.isOnMapTab)
             return table.filterByTargetTimes(
-                [endTime],
+                [timeClosestToEndTime],
                 table.get(this.mapColumnSlug).tolerance
             )
 
         if (this.isDiscreteBar || this.isLineChartThatTurnedIntoDiscreteBar)
             return table.filterByTargetTimes(
-                [endTime],
+                [timeClosestToEndTime],
                 table.get(this.yColumnSlugs[0]).tolerance
             )
 
         if (this.isSlopeChart)
-            return table.filterByTargetTimes([startTime, endTime])
+            return table.filterByTargetTimes([
+                timeClosestToStartTime,
+                timeClosestToEndTime,
+            ])
 
-        return table.filterByTimeRange(startTime, endTime)
+        return table.filterByTimeRange(
+            timeClosestToStartTime,
+            timeClosestToEndTime
+        )
     }
 
     @computed get transformedTable() {
@@ -840,11 +853,11 @@ export class Grapher
     // Keeps a running cache of series colors at the Grapher level.
     seriesColorMap: SeriesColorMap = new Map()
 
-    @computed get startTime(): Time | undefined {
+    @computed get timeClosestToStartTime(): Time | undefined {
         return findClosestTime(this.times, this.startHandleTimeBound)
     }
 
-    @computed get endTime(): Time | undefined {
+    @computed get timeClosestToEndTime(): Time | undefined {
         return findClosestTime(this.times, this.endHandleTimeBound)
     }
 
@@ -987,23 +1000,23 @@ export class Grapher
 
     @computed get timelineHandleTimeBounds(): TimeBounds {
         if (this.isOnMapTab) {
-            const time = maxTimeBoundFromJSONOrPositiveInfinity(this.map.time)
+            const time = maxTimeBoundFromJSONOrPositiveInfinity(this.mapTime)
             return [time, time]
         }
         return [
             // Handle `undefined` values in minTime/maxTime
-            minTimeBoundFromJSONOrNegativeInfinity(this.minTime),
-            maxTimeBoundFromJSONOrPositiveInfinity(this.maxTime),
+            minTimeBoundFromJSONOrNegativeInfinity(this.startTime),
+            maxTimeBoundFromJSONOrPositiveInfinity(this.endTime),
         ]
     }
 
     @action.bound @updatesPatch setTimelineHandleTimeBoundsCommand(
         value: TimeBounds
     ) {
-        if (this.isOnMapTab) this.map.time = value[1]
+        if (this.isOnMapTab) this.mapTime = value[1]
         else {
-            this.minTime = value[0]
-            this.maxTime = value[1]
+            this.startTime = value[0]
+            this.endTime = value[1]
         }
     }
 
@@ -1181,15 +1194,19 @@ export class Grapher
     @computed private get timeTitleSuffix() {
         const timeColumn = this.table.timeColumn
         if (timeColumn.isMissing) return "" // Do not show year until data is loaded
-        const { startTime, endTime } = this
-        if (startTime === undefined || endTime === undefined) return ""
+        const { timeClosestToStartTime, timeClosestToEndTime } = this
+        if (
+            timeClosestToStartTime === undefined ||
+            timeClosestToEndTime === undefined
+        )
+            return ""
 
         const time =
-            startTime === endTime
-                ? timeColumn.formatValue(startTime)
-                : timeColumn.formatValue(startTime) +
+            timeClosestToStartTime === timeClosestToEndTime
+                ? timeColumn.formatValue(timeClosestToStartTime)
+                : timeColumn.formatValue(timeClosestToStartTime) +
                   " to " +
-                  timeColumn.formatValue(endTime)
+                  timeColumn.formatValue(timeClosestToEndTime)
 
         return ", " + time
     }
@@ -1682,12 +1699,6 @@ export class Grapher
                 fn: () => this.clearErrors(),
             },
             {
-                combo: "z",
-                fn: () => this.flipThroughTimelineExtremesCommand(),
-                title: "Latest/Earliest/All period",
-                category: "Timeline",
-            },
-            {
                 combo: "shift+o",
                 fn: () => this.clearQueryParams(),
                 title: "Reset to original",
@@ -1716,17 +1727,6 @@ export class Grapher
 
     @observable slideShow?: SlideShowController
 
-    @action.bound private flipThroughTimelineExtremesCommand() {
-        // Todo: add tests for this
-        const time = next(["latest", "earliest", ".."], this.timeParam!)
-
-        this.setTimelineHandleTimeBoundsCommand(
-            getTimeDomainFromQueryString(time).map(
-                (time) => findClosestTime(this.times, time) ?? time
-            ) as TimeBounds
-        )
-    }
-
     @action.bound private toggleFilterAllCommand() {
         this.changeMinPopulationFilterCommand(
             this.minPopulationFilter === 2e9 ? undefined : 2e9
@@ -1744,7 +1744,10 @@ export class Grapher
         axisConfig: AxisConfig,
         newScaleType?: ScaleType
     ) {
+        // todo: remove nested yAxis config
         axisConfig.scaleType = newScaleType
+        if (axisConfig === this.yAxis) this.yScale = newScaleType
+        else this.xScale = newScaleType
     }
 
     @action.bound private toggleFacetStrategyCommand() {
@@ -1934,32 +1937,12 @@ export class Grapher
         else if (renderWidth >= 1080) this.baseFontSize = 18
     }
 
-    // Binds chart properties to global window title and URL. This should only
-    // ever be invoked from top-level JavaScript.
-    private bindToWindow() {
-        // There is a surprisingly considerable performance overhead to updating the url
-        // while animating, so we debounce to allow e.g. smoother timelines
-        const pushParams = () =>
-            this.encodedQueryStr
-                ? setWindowQueryStr(this.encodedQueryStr)
-                : null
-        const debouncedPushParams = debounce(pushParams, 100)
-
-        reaction(
-            () => this.patch,
-            () => (this.debounceMode ? debouncedPushParams() : pushParams())
-        )
-
-        autorun(() => (document.title = this.currentTitle))
-    }
-
     componentDidMount() {
         window.addEventListener("scroll", this.checkVisibility)
         this.setBaseFontSize()
         this.checkVisibility()
         exposeInstanceOnWindow(this, "grapher")
-        if (this.props.bindUrlToWindow) this.bindToWindow()
-        else GlobalEntityRegistry.add(this)
+        if (!this.props.bindUrlToWindow) GlobalEntityRegistry.add(this)
         if (this.props.enableKeyboardShortcuts) this.bindKeyboardShortcuts()
     }
 
@@ -2026,16 +2009,16 @@ export class Grapher
     @action.bound clearQueryParams() {
         const { authorsVersion } = this
         this.tab = authorsVersion.tab
-        this.xAxis.scaleType = authorsVersion.xAxis.scaleType
-        this.yAxis.scaleType = authorsVersion.yAxis.scaleType
+        this.xScale = authorsVersion.xScale
+        this.yScale = authorsVersion.yScale
         this.stackMode = authorsVersion.stackMode
         this.zoomToSelection = authorsVersion.zoomToSelection
         this.minPopulationFilter = authorsVersion.minPopulationFilter
         this.compareEndPointsOnly = authorsVersion.compareEndPointsOnly
-        this.minTime = authorsVersion.minTime
-        this.maxTime = authorsVersion.maxTime
-        this.map.time = authorsVersion.map.time
-        this.map.projection = authorsVersion.map.projection
+        this.startTime = authorsVersion.startTime
+        this.endTime = authorsVersion.endTime
+        this.mapTime = authorsVersion.mapTime
+        this.mapProjection = authorsVersion.mapProjection
         this.selection.clearSelection()
         this.applyOriginalSelectionAsAuthored()
     }
@@ -2066,31 +2049,14 @@ export class Grapher
         params.stackMode = this.stackMode
         params.minPopulationFilter = this.minPopulationFilter?.toString()
         params.zoomToSelection = this.zoomToSelection ? "true" : undefined
-        params.region = this.map.projection
+        params.region = this.mapProjection
         params.endpointsOnly = this.compareEndPointsOnly ? "1" : "0"
         params.selection = this.selectedEntitiesParamIfDifferentThanAuthors
-        params.xScale = this.xAxis.scaleType
-        params.yScale = this.yAxis.scaleType
-        params.time = this.timeParam
+        params.xScale = this.xScale
+        params.yScale = this.yScale
+        params.startTime = this.startTime?.toString()
+        params.endTime = this.endTime?.toString()
         return params
-    }
-
-    @computed get timeParam() {
-        const formatAsDay = this.table.hasDayColumn
-        if (this.isOnMapTab && this.map.time !== undefined)
-            return timeBoundToTimeBoundString(this.map.time, formatAsDay)
-
-        const [startHandleTime, rightHandleTime] = this.timelineHandleTimeBounds
-        const startTimeBoundString = timeBoundToTimeBoundString(
-            startHandleTime,
-            formatAsDay
-        )
-        return startHandleTime === rightHandleTime
-            ? startTimeBoundString
-            : `${startTimeBoundString}..${timeBoundToTimeBoundString(
-                  rightHandleTime,
-                  formatAsDay
-              )}`
     }
 
     @action.bound @updatesPatch changeZoomToSelectionCommand(
@@ -2130,7 +2096,16 @@ export class Grapher
         const changedParams = deleteRuntimeAndUnchangedProps<
             GrapherPatchObject
         >(this.allParams, this.authorsVersion.allParams)
+
+        // todo: remove this line
+        if (changedParams.selection === undefined)
+            delete changedParams.selection
         this.patch = new Patch(changedParams as any)
+
+        // todo: do we need to worry about overhead with animations? we used to throttle this for that reason with the timeline
+        // however there wasn't any test infra, so removed it for now.
+        if (this.encodedQueryStr) setWindowQueryStr(this.encodedQueryStr)
+        document.title = this.currentTitle
     }
 
     // todo: init with initial patch

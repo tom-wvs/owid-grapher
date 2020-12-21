@@ -25,8 +25,8 @@ export interface ScatterPlotManager extends ChartManager {
     excludedEntities?: EntityId[]
     backgroundSeriesLimit?: number
     hideLinesOutsideTolerance?: boolean
-    startTime?: Time
-    endTime?: Time
+    timeClosestToStartTime?: Time
+    timeClosestToEndTime?: Time
     hasTimeline?: boolean
 }
 

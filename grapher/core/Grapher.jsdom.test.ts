@@ -169,8 +169,8 @@ const getGrapher = () =>
                 "2": { name: "Ireland", code: "IRL", id: 2 },
             },
         },
-        minTime: -5000,
-        maxTime: 5000,
+        startTime: -5000,
+        endTime: 5000,
     })
 
 function fromQueryParams(
@@ -184,9 +184,9 @@ function fromQueryParams(
 
 function toQueryParams(props?: Partial<GrapherInterface>) {
     const grapher = new Grapher({
-        minTime: -5000,
-        maxTime: 5000,
-        map: { time: 5000 },
+        startTime: -5000,
+        endTime: 5000,
+        mapTime: 5000,
     })
     if (props) grapher.updateFromObject(props)
     return grapher.patch
@@ -258,7 +258,7 @@ describe("authors can use maxTime", () => {
             table,
             type: ChartTypeName.DiscreteBar,
             selectedEntityNames: table.availableEntityNames,
-            maxTime: 2005,
+            endTime: 2005,
         })
         const chart = grapher.chartInstance
         expect(chart.failMessage).toBeFalsy()
@@ -460,8 +460,8 @@ describe("time parameter", () => {
             if (!test.irreversible) {
                 it(`encode ${test.name}`, () => {
                     const params = toQueryParams({
-                        minTime: test.param[0],
-                        maxTime: test.param[1],
+                        startTime: test.param[0],
+                        endTime: test.param[1],
                     })
                     expect(params.object.time).toEqual(test.query)
                 })
@@ -471,7 +471,7 @@ describe("time parameter", () => {
         it("empty string doesn't change time", () => {
             const grapher = fromQueryParams(
                 { time: "" },
-                { minTime: 0, maxTime: 5 }
+                { startTime: 0, endTime: 5 }
             )
             const [start, end] = grapher.timelineHandleTimeBounds
             expect(start).toEqual(0)
@@ -480,16 +480,16 @@ describe("time parameter", () => {
 
         it("doesn't include URL param if it's identical to original config", () => {
             const grapher = new Grapher({
-                minTime: 0,
-                maxTime: 75,
+                startTime: 0,
+                endTime: 75,
             })
             expect(grapher.patch.object.time).toEqual(undefined)
         })
 
         it("doesn't include URL param if unbounded is encoded as `undefined`", () => {
             const grapher = new Grapher({
-                minTime: undefined,
-                maxTime: 75,
+                startTime: undefined,
+                endTime: 75,
             })
             expect(grapher.patch.object.time).toEqual(undefined)
         })
@@ -613,8 +613,8 @@ describe("time parameter", () => {
                 it(`encode ${test.name}`, () => {
                     const grapher = getGrapher()
                     grapher.updateFromObject({
-                        minTime: test.param[0],
-                        maxTime: test.param[1],
+                        startTime: test.param[0],
+                        endTime: test.param[1],
                     })
                     const params = grapher.patch
                     expect(params.object.time).toEqual(test.query)
@@ -668,7 +668,7 @@ describe("year parameter (applies to map only)", () => {
             it(`encode ${test.name}`, () => {
                 const params = toQueryParams({
                     tab: GrapherTabOption.map,
-                    map: { time: test.param },
+                    mapTime: test.param,
                 })
                 expect(params.object.time).toEqual(test.query)
             })
@@ -736,7 +736,7 @@ describe("year parameter (applies to map only)", () => {
                     const grapher = getGrapher()
                     grapher.updateFromObject({
                         tab: GrapherTabOption.map,
-                        map: { time: test.param },
+                        mapTime: test.param,
                     })
                     const params = grapher.patch
                     expect(params.object.time).toEqual(test.query)

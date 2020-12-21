@@ -4,9 +4,7 @@ import { GrapherTabOption, DimensionProperty } from "../core/GrapherConstants"
 export const legacyMapGrapher: GrapherProgrammaticInterface = {
     hasMapTab: true,
     tab: GrapherTabOption.map,
-    map: {
-        timeTolerance: 5,
-    },
+    mapTimeTolerance: 5,
     dimensions: [
         {
             variableId: 3512,
@@ -34,5 +32,5 @@ export const legacyMapGrapher: GrapherProgrammaticInterface = {
             "207": { name: "Iceland", id: 207, code: "ISL" },
         },
     },
-    queryStr: "?time=2002",
+    queryStr: "?endTime=2002",
 }

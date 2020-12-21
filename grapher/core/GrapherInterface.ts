@@ -26,6 +26,7 @@ import { EntityId, EntityName } from "../../coreTable/OwidTableConstants"
 import { ColorSchemeName } from "../color/ColorConstants"
 import { EntityUrlBuilder } from "./EntityUrlBuilder"
 import { PatchObjectLiteral } from "../../patch/Patch"
+import { ScaleType } from "../../clientUtils/owidTypes"
 
 // This configuration represents the entire persistent state of a grapher
 // Ideally, this is also all of the interaction state: when a grapher is saved and loaded again
@@ -40,10 +41,12 @@ export interface GrapherInterface {
     sourceDesc?: string
     note?: string
     hideTitleAnnotation?: boolean
-    minTime?: TimeBound
-    maxTime?: TimeBound
-    timelineMinTime?: Time
-    timelineMaxTime?: Time
+    startTime?: TimeBound
+    endTime?: TimeBound
+    mapTime?: TimeBound
+    mapTimeTolerance?: number
+    minTimeFilter?: Time
+    maxTimeFilter?: Time
     dimensions?: LegacyChartDimensionInterface[]
     addCountryMode?: EntitySelectionMode
     comparisonLines?: ComparisonLineConfig[]
@@ -81,6 +84,9 @@ export interface GrapherInterface {
     selectedEntityIds?: EntityId[]
     facet?: FacetStrategy
 
+    xScale?: ScaleType
+    yScale?: ScaleType
+
     xAxis?: Partial<AxisConfigInterface>
     yAxis?: Partial<AxisConfigInterface>
     colorScale?: Partial<ColorScaleConfigInterface>
@@ -106,7 +112,9 @@ export interface GrapherPatchObject extends PatchObjectLiteral {
     minPopulationFilter?: string
     xScale?: string
     yScale?: string
-    time?: string
+    startTime?: string
+    endTime?: string
+    mapTime?: string
     region?: string
     shown?: string
     endpointsOnly?: string

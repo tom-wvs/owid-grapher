@@ -125,8 +125,8 @@ export const Faceting = () => {
 export const WithAuthorTimeFilter = () => {
     const model: GrapherProgrammaticInterface = {
         ...basics,
-        timelineMinTime: 1993,
-        timelineMaxTime: 1996,
+        minTimeFilter: 1993,
+        maxTimeFilter: 1996,
     }
     return <Grapher {...model} />
 }

@@ -13,6 +13,7 @@ import {
     FacetStrategy,
     GrapherTabOption,
 } from "../grapher/core/GrapherConstants"
+import { ScaleType } from "../clientUtils/owidTypes"
 
 export const GrapherGrammar: Grammar = {
     title: {
@@ -118,6 +119,24 @@ export const GrapherGrammar: Grammar = {
         description:
             "Set this to limit the number of background series shown on ScatterPlots.",
         keyword: "backgroundSeriesLimit",
+    },
+    yScale: {
+        ...EnumCellDef,
+        keyword: "yScale",
+        terminalOptions: Object.values(ScaleType).map((keyword) => ({
+            keyword,
+            description: "",
+            cssClass: "",
+        })),
+    },
+    xScale: {
+        ...EnumCellDef,
+        keyword: "xScale",
+        terminalOptions: Object.values(ScaleType).map((keyword) => ({
+            keyword,
+            description: "",
+            cssClass: "",
+        })),
     },
     yScaleToggle: {
         ...BooleanCellDef,

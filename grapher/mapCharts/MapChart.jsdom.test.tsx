@@ -14,7 +14,7 @@ const table = SynthesizeGDPTable({
 const manager: MapChartManager = {
     table,
     mapColumnSlug: SampleColumnSlugs.Population,
-    endTime: 2000,
+    timeClosestToEndTime: 2000,
 }
 
 test("can create a new Map chart", () => {

@@ -224,12 +224,15 @@ export class ScatterPlotChart
         let table = this.transformedTableFromGrapher
         if (
             this.manager.hideLinesOutsideTolerance &&
-            this.manager.startTime !== undefined &&
-            this.manager.endTime !== undefined
+            this.manager.timeClosestToStartTime !== undefined &&
+            this.manager.timeClosestToEndTime !== undefined
         ) {
             const entityNames = Array.from(
                 intersectionOfSets(
-                    [this.manager.startTime, this.manager.endTime].map(
+                    [
+                        this.manager.timeClosestToStartTime,
+                        this.manager.timeClosestToEndTime,
+                    ].map(
                         (targetTime) =>
                             table.filterByTargetTimes([targetTime], 0)
                                 .availableEntityNameSet
@@ -678,7 +681,8 @@ export class ScatterPlotChart
             if (
                 this.manager.isRelativeMode &&
                 this.manager.hasTimeline &&
-                this.manager.startTime === this.manager.endTime
+                this.manager.timeClosestToStartTime ===
+                    this.manager.timeClosestToEndTime
             ) {
                 return "Please select two points on the timeline below"
             }

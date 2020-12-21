@@ -60,8 +60,8 @@ const inverseSortOrder = (order: SortOrder) =>
 
 export interface DataTableManager {
     table: OwidTable
-    endTime?: Time
-    startTime?: Time
+    timeClosestToEndTime?: Time
+    timeClosestToStartTime?: Time
     minPopulationFilter?: number
     dataTableSlugs?: ColumnSlug[]
 }
@@ -484,11 +484,16 @@ export class DataTable extends React.Component<{
     }
 
     @computed get targetTimes() {
-        const { startTime, endTime } = this.manager
-        if (startTime === undefined || endTime === undefined) return undefined
+        const { timeClosestToStartTime, timeClosestToEndTime } = this.manager
+        if (
+            timeClosestToStartTime === undefined ||
+            timeClosestToEndTime === undefined
+        )
+            return undefined
 
-        if (startTime !== endTime) return [startTime, endTime]
-        return [endTime]
+        if (timeClosestToStartTime !== timeClosestToEndTime)
+            return [timeClosestToStartTime, timeClosestToEndTime]
+        return [timeClosestToEndTime]
     }
 
     // todo: this function should be refactored. It's about 5x-10x too long. I'm currently getting an undefined value but it's very hard to figure out where.

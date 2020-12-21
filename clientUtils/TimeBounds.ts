@@ -91,8 +91,10 @@ export const timeBoundToTimeBoundString = (
         : `${timeBound}`
 }
 
-const parseTimeURIComponent = (param: string): TimeBound | undefined =>
-    reISODate.test(param)
+export const parseTimeURIComponent = (param?: string): TimeBound | undefined =>
+    param === undefined
+        ? undefined
+        : reISODate.test(param)
         ? diffDateISOStringInDays(param, EPOCH_DATE)
         : parseTimeBound(param)
 

@@ -177,7 +177,7 @@ export class MapChart
             .dropRowsWithErrorValuesForColumn(this.mapColumnSlug)
             .interpolateColumnWithTolerance(
                 this.mapColumnSlug,
-                this.mapConfig.timeTolerance
+                this.manager.mapTimeTolerance
             )
     }
 
@@ -209,7 +209,7 @@ export class MapChart
     }
 
     @computed private get targetTime() {
-        return this.manager.endTime
+        return this.manager.timeClosestToEndTime
     }
 
     @computed get bounds() {
@@ -555,7 +555,8 @@ export class MapChart
             mapConfig,
         } = this
 
-        const { projection } = mapConfig
+        const mapProjection =
+            this.manager.mapProjection ?? MapProjectionName.World
 
         const tooltipDatum = tooltipTarget
             ? seriesMap.get(tooltipTarget.featureId)
@@ -566,7 +567,7 @@ export class MapChart
                 <ChoroplethMap
                     bounds={this.bounds.padBottom(this.legendHeight + 15)}
                     choroplethData={seriesMap}
-                    projection={projection}
+                    projection={mapProjection}
                     defaultFill={colorScale.noDataColor}
                     onHover={this.onMapMouseOver}
                     onHoverStop={this.onMapMouseLeave}
@@ -584,7 +585,7 @@ export class MapChart
                     style={{ overflow: "visible", height: "100%" }}
                 >
                     <ProjectionChooser
-                        value={projection}
+                        value={mapProjection}
                         onChange={this.onProjectionChange}
                     />
                 </foreignObject>

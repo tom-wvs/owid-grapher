@@ -616,8 +616,8 @@ describe("series transformations", () => {
             manager: {
                 ...manager,
                 hideLinesOutsideTolerance: true,
-                startTime: 2000,
-                endTime: 2003,
+                timeClosestToStartTime: 2000,
+                timeClosestToEndTime: 2003,
             },
         })
         // Because of the assumption that the timeline filter is applied,

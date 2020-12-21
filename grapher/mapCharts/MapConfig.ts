@@ -9,10 +9,6 @@ import {
     objectWithPersistablesToObject,
     deleteRuntimeAndUnchangedProps,
 } from "../persistable/Persistable"
-import {
-    maxTimeBoundFromJSONOrPositiveInfinity,
-    maxTimeToJSON,
-} from "../../clientUtils/TimeBounds"
 import { trimObject } from "../../clientUtils/Util"
 
 // MapConfig holds the data and underlying logic needed by MapTab.
@@ -20,10 +16,7 @@ import { trimObject } from "../../clientUtils/Util"
 // TODO: migrate database config & only pass legend props
 class MapConfigDefaults {
     @observable columnSlug?: ColumnSlug
-    @observable time?: number
-    @observable timeTolerance?: number
     @observable hideTimeline?: boolean
-    @observable projection = MapProjectionName.World
 
     @observable colorScale = new ColorScaleConfig()
     // Show the label from colorSchemeLabels in the tooltip instead of the numeric value
@@ -44,12 +37,6 @@ export class MapConfig extends MapConfigDefaults implements Persistable {
             obj.columnSlug = obj.variableId.toString()
 
         updatePersistables(this, obj)
-
-        // Migrate "targetYear" to "time"
-        if (obj.targetYear)
-            this.time = maxTimeBoundFromJSONOrPositiveInfinity(obj.targetYear)
-        else if (obj.time)
-            this.time = maxTimeBoundFromJSONOrPositiveInfinity(obj.time)
     }
 
     toObject() {
@@ -57,8 +44,6 @@ export class MapConfig extends MapConfigDefaults implements Persistable {
             this
         ) as MapConfigWithLegacyInterface
         deleteRuntimeAndUnchangedProps(obj, new MapConfigDefaults())
-
-        if (obj.time) obj.time = maxTimeToJSON(this.time) as any
 
         if (obj.columnSlug) {
             // Restore variableId for legacy for now

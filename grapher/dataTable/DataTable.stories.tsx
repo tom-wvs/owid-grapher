@@ -25,8 +25,8 @@ export const WithTimeRange = () => {
     const manager: DataTableManager = {
         table,
     }
-    manager.startTime = 1950
-    manager.endTime = 2000
+    manager.timeClosestToStartTime = 1950
+    manager.timeClosestToEndTime = 2000
     return <DataTable manager={manager} />
 }
 
@@ -49,8 +49,8 @@ export const WithTolerance = () => {
             <DataTable
                 manager={{
                     table,
-                    startTime: 2010,
-                    endTime: 2010,
+                    timeClosestToStartTime: 2010,
+                    timeClosestToEndTime: 2010,
                 }}
             />
             <div>
@@ -59,8 +59,8 @@ export const WithTolerance = () => {
             </div>
             <DataTable
                 manager={{
-                    startTime: 2010,
-                    endTime: 2010,
+                    timeClosestToStartTime: 2010,
+                    timeClosestToEndTime: 2010,
                     table: filteredTable,
                 }}
             />

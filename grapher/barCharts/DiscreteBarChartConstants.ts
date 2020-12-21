@@ -9,7 +9,7 @@ export interface DiscreteBarSeries extends ChartSeries {
 
 export interface DiscreteBarChartManager extends ChartManager {
     showYearLabels?: boolean
-    endTime?: Time
+    timeClosestToEndTime?: Time
 }
 
 export const DEFAULT_BAR_COLOR = "#2E5778"

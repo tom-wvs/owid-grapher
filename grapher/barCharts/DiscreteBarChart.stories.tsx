@@ -49,7 +49,7 @@ export const EntitiesAsSeriesWithTolerance = () => {
         transformedTable: table,
         selection: table.availableEntityNames,
         yColumnSlug: SampleColumnSlugs.Population,
-        endTime: 2009,
+        timeClosestToEndTime: 2009,
     }
 
     return (

@@ -54,10 +54,12 @@ export interface RenderFeature {
 
 export interface MapChartManager extends ChartManager {
     mapColumnSlug?: ColumnSlug
+    mapTimeTolerance?: number
+    mapProjection?: MapProjectionName
     mapIsClickable?: boolean
     type?: ChartTypeName // Used to determine the "Click to select" text in MapTooltip
     mapConfig?: MapConfig
-    endTime?: Time
+    timeClosestToEndTime?: Time
 
     changeTabCommand?: (tabName: GrapherTabOption) => void
     changeMapProjectionCommand?: (newValue: MapProjectionName) => void

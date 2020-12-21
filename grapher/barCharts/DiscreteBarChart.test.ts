@@ -25,7 +25,7 @@ it("can create a new bar chart", () => {
         table,
         selection,
         yColumnSlug: SampleColumnSlugs.Population,
-        endTime: 2000,
+        timeClosestToEndTime: 2000,
     }
     const chart = new DiscreteBarChart({ manager })
 
@@ -107,7 +107,7 @@ describe("barcharts with columns as the series", () => {
                 transformedTable: table,
                 seriesStrategy: SeriesStrategy.entity,
                 yColumnSlugs: ["gdp"],
-                endTime: 2020,
+                timeClosestToEndTime: 2020,
             },
         })
         expect(chart.formatValue(chart.series[0])).toEqual("1,002")

@@ -31,7 +31,8 @@ class VariableSection extends React.Component<{
     }
 
     @action.bound onProjection(projection: string | undefined) {
-        this.props.mapConfig.projection = projection as MapProjectionName
+        // todo: restore
+        // this.props.mapConfig.projection = projection as MapProjectionName
     }
 
     render() {
@@ -64,7 +65,7 @@ class VariableSection extends React.Component<{
                 />
                 <SelectField
                     label="Region"
-                    value={mapConfig.projection}
+                    value={undefined /* todo: restore */}
                     options={projections}
                     optionLabels={labels}
                     onValue={this.onProjection}
@@ -81,20 +82,24 @@ class TimelineSection extends React.Component<{ mapConfig: MapConfig }> {
     }
 
     @action.bound setMapTime(time: number | undefined) {
-        this.props.mapConfig.time = time
+        // this.props.mapTime = time
+        // todo: fix?
     }
 
     @action.bound onTolerance(tolerance: number | undefined) {
-        this.props.mapConfig.timeTolerance = tolerance
+        // this.props.mapTimeTolerance = tolerance
+        // todo: fix?
     }
 
     render() {
         const { mapConfig } = this.props
+        const mapTime = undefined // todo
+        const mapTimeTolerance = undefined // todo
         return (
             <Section name="Timeline">
                 <NumberField
                     label="Target year"
-                    value={mapConfig.time}
+                    value={mapTime}
                     onValue={this.setMapTime}
                     allowNegative
                 />
@@ -105,7 +110,7 @@ class TimelineSection extends React.Component<{ mapConfig: MapConfig }> {
                 />
                 <NumberField
                     label="Tolerance of data"
-                    value={mapConfig.timeTolerance}
+                    value={mapTimeTolerance}
                     onValue={this.onTolerance}
                     helpText="Specify a range of years from which to pull data. For example, if the map shows 1990 and tolerance is set to 1, then data from 1989 or 1991 will be shown if no data is available for 1990."
                 />

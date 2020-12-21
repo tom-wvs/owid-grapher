@@ -88,17 +88,17 @@ class TimelineSection extends React.Component<{ editor: ChartEditor }> {
     }
 
     @computed get minTime() {
-        return this.grapher.minTime
+        return this.grapher.startTime
     }
     @computed get maxTime() {
-        return this.grapher.maxTime
+        return this.grapher.endTime
     }
 
     @computed get timelineMinTime() {
-        return this.grapher.timelineMinTime
+        return this.grapher.minTimeFilter
     }
     @computed get timelineMaxTime() {
-        return this.grapher.timelineMaxTime
+        return this.grapher.maxTimeFilter
     }
 
     @action.bound onMinTime(value: number | undefined) {
@@ -114,11 +114,11 @@ class TimelineSection extends React.Component<{ editor: ChartEditor }> {
     }
 
     @action.bound onTimelineMinTime(value: number | undefined) {
-        this.grapher.timelineMinTime = value
+        this.grapher.minTimeFilter = value
     }
 
     @action.bound onTimelineMaxTime(value: number | undefined) {
-        this.grapher.timelineMaxTime = value
+        this.grapher.maxTimeFilter = value
     }
 
     @action.bound onToggleHideTimeline(value: boolean) {
@@ -139,7 +139,7 @@ class TimelineSection extends React.Component<{ editor: ChartEditor }> {
                     {features.timeDomain && (
                         <NumberField
                             label="Selection start"
-                            value={grapher.minTime}
+                            value={grapher.startTime}
                             onValue={debounce(this.onMinTime)}
                             allowNegative
                         />
@@ -150,7 +150,7 @@ class TimelineSection extends React.Component<{ editor: ChartEditor }> {
                                 ? "Selection end"
                                 : "Selected year"
                         }
-                        value={grapher.maxTime}
+                        value={grapher.endTime}
                         onValue={debounce(this.onMaxTime)}
                         allowNegative
                     />

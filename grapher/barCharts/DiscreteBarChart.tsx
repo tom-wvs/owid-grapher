@@ -84,7 +84,7 @@ export class DiscreteBarChart
     }
 
     @computed private get targetTime() {
-        return this.manager.endTime
+        return this.manager.timeClosestToEndTime
     }
 
     @computed private get bounds() {
