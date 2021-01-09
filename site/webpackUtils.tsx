@@ -6,8 +6,7 @@ import { BAKED_BASE_URL } from "../settings/clientSettings"
 
 const WEBPACK_DEV_URL = process.env.WEBPACK_DEV_URL ?? "http://localhost:8090"
 const WEBPACK_OUTPUT_PATH =
-    process.env.WEBPACK_OUTPUT_PATH ??
-    path.join(__dirname + "/../", "itsJustJavascript/webpack")
+    process.env.WEBPACK_OUTPUT_PATH ?? path.join(__dirname + "/../", "webpack")
 
 let manifest: { [key: string]: string }
 export const webpackUrl = (assetName: string) => {
