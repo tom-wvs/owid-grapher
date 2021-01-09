@@ -446,7 +446,7 @@ export class SiteBaker {
                 total: 3 + (deployDirectlyToNetlix ? 1 : 0),
             }
         )
-        progressBar.tick({ name: "✅ read to deploy" })
+        progressBar.tick({ name: "✅ ready to deploy" })
         // Deploy directly to Netlify (faster than using the github hook)
         if (deployDirectlyToNetlix) {
             await this.execAndLogAnyErrorsToSlack(
