@@ -340,11 +340,15 @@ export class SiteBaker {
             const program = await getLegacyCovidExplorerAsExplorerProgramForSlug(
                 slug
             )
-            const html = await explorerAdminServer.renderExplorerPage(program!)
-            await this.stageWrite(
-                `${this.bakedSiteDir}/grapher/${slug}.html`,
-                html
-            )
+            if (program) {
+                const html = await explorerAdminServer.renderExplorerPage(
+                    program
+                )
+                await this.stageWrite(
+                    `${this.bakedSiteDir}/grapher/${slug}.html`,
+                    html
+                )
+            } else console.error(`Explorer program undefined for ${slug}`)
         }
         this.progressBar.tick({ name: "✅ bakeGrapherToExplorerRedirects" })
     }
