@@ -129,7 +129,7 @@ yarn testPrettierAll`
             rsyncTargetDirForTests: `${owidUserHomeTmpDir}/${target}-tests`,
             finalTargetDir: `${owidUserHomeDir}/${target}`,
             oldRepoBackupDir: `${owidUserHomeTmpDir}-old`,
-            dataDir: `${owidUserHomeDir}/${target}-data`,
+            finalDataDir: `${owidUserHomeDir}/${target}-data`,
         }
     }
 
@@ -200,7 +200,7 @@ yarn testPrettierAll`
             owidUserHomeTmpDir,
             owidUserHomeDir,
             oldRepoBackupDir,
-            dataDir,
+            finalDataDir,
         } = this.pathsOnTarget
 
         const gitConfig = await simpleGit.listConfig()
@@ -210,9 +210,9 @@ yarn testPrettierAll`
         const scripts: any = {
             clearOldTemporaryRepo: `rm -rf ${rsyncTargetDirTmp}`,
             copySyncedRepo: `cp -r ${rsyncTargetDir} ${rsyncTargetDirTmp}`, // Copy the synced repo-- this is because we're about to move it, and we want the original target to stay around to make future syncs faster
-            createDataSoftlinks: `mkdir -p ${dataDir}/bakedSite && ln -sf ${dataDir}/bakedSite ${rsyncTargetDir}/bakedSite`,
-            createDatasetSoftlinks: `mkdir -p ${dataDir}/datasetsExport && ln -sf ${dataDir}/datasetsExport ${rsyncTargetDir}/datasetsExport`,
-            createSettingsSoftlinks: `ln -sf ${dataDir}/serverSettings.json ${rsyncTargetDir}/serverSettings.json && ln -sf ${dataDir}/clientSettings.json ${rsyncTargetDir}/clientSettings.json`,
+            createDataSoftlinks: `mkdir -p ${finalDataDir}/bakedSite && ln -sf ${finalDataDir}/bakedSite ${rsyncTargetDir}/bakedSite`,
+            createDatasetSoftlinks: `mkdir -p ${finalDataDir}/datasetsExport && ln -sf ${finalDataDir}/datasetsExport ${rsyncTargetDir}/datasetsExport`,
+            createSettingsSoftlinks: `ln -sf ${finalDataDir}/serverSettings.json ${rsyncTargetDir}/serverSettings.json && ln -sf ${finalDataDir}/clientSettings.json ${rsyncTargetDir}/clientSettings.json`,
             yarn: `cd ${rsyncTargetDirTmp} && yarn install --production --frozen-lockfile`,
             webpack: `cd ${rsyncTargetDirTmp} && yarn buildWebpack`,
             algolia: `cd ${rsyncTargetDirTmp} && node itsJustJavascript/baker/algolia/configureAlgolia.js`,
