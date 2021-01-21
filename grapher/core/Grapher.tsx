@@ -862,9 +862,7 @@ export class Grapher
     }
 
     @computed get dataUrl() {
-        return `${this.bakedGrapherURL ?? ""}/data/variables/${
-            this.dataFileName
-        }`
+        return `/data/variables/${this.dataFileName}`
     }
 
     externalCsvLink = ""

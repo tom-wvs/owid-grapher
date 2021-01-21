@@ -29,7 +29,7 @@ import {
 } from "../explorer/ExplorerConstants"
 import { LoadingIndicator } from "../grapher/loadingIndicator/LoadingIndicator"
 import { AdminManager } from "./AdminManager"
-import { BAKED_BASE_URL } from "../settings/clientSettings"
+import { BAKED_BASE_URL } from "../settings/serverSettings"
 
 @observer
 class ExplorerRow extends React.Component<{

@@ -7,11 +7,11 @@ import { bind } from "decko"
 import Recaptcha from "react-recaptcha"
 import {
     DONATE_API_URL,
-    BAKED_BASE_URL,
     RECAPTCHA_SITE_KEY,
 } from "../../settings/clientSettings"
 
 import stripe from "./stripe"
+import { baseUrl } from "../../clientUtils/Util"
 
 type Interval = "once" | "monthly"
 
@@ -141,8 +141,8 @@ export class DonateForm extends React.Component {
                 currency: this.currencyCode,
                 amount: Math.floor(this.amount * 100),
                 interval: this.interval,
-                successUrl: `${BAKED_BASE_URL}/donate/thank-you`,
-                cancelUrl: `${BAKED_BASE_URL}/donate`,
+                successUrl: `${baseUrl()}/donate/thank-you`,
+                cancelUrl: `${baseUrl()}/donate`,
                 captchaToken: captchaToken,
             }),
         })

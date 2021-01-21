@@ -17,11 +17,12 @@ import {
     countryProfileCountryPage,
 } from "../baker/siteRenderers"
 import { grapherSlugToHtmlPage } from "../baker/GrapherBaker"
-import { BAKED_BASE_URL, BAKED_GRAPHER_URL } from "../settings/clientSettings"
 import {
     WORDPRESS_DIR,
     BASE_DIR,
     BAKED_SITE_DIR,
+    BAKED_BASE_URL,
+    BAKED_GRAPHER_URL,
 } from "../settings/serverSettings"
 import * as db from "../db/db"
 import { expectInt, renderToHtmlPage } from "./serverUtil"

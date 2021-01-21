@@ -3,7 +3,7 @@ import { SiteBaker } from "../baker/SiteBaker"
 import { log } from "./slackLog"
 import { DeployQueueServer } from "./DeployQueueServer"
 import { BAKED_SITE_DIR } from "../settings/serverSettings"
-import { BAKED_BASE_URL } from "../settings/clientSettings"
+import { BAKED_BASE_URL } from "../settings/serverSettings"
 import { DeployChange } from "../clientUtils/owidTypes"
 
 const deployQueueServer = new DeployQueueServer()

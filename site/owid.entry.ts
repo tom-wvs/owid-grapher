@@ -24,7 +24,7 @@ import { runCovid } from "./covid/index"
 import { hydrateGlobalEntityControlIfAny } from "../grapher/controls/globalEntityControl/GlobalEntityControl"
 import { runFootnotes } from "./Footnote"
 import { Explorer } from "../explorer/Explorer"
-import { BAKED_BASE_URL, ENV } from "../settings/clientSettings"
+import { ENV } from "../settings/serverSettings"
 import {
     CookieKey,
     GRAPHER_PAGE_BODY_CLASS,
@@ -33,6 +33,7 @@ import { Grapher } from "../grapher/core/Grapher"
 import { MultiEmbedderSingleton } from "../site/multiembedder/MultiEmbedder"
 import { CoreTable } from "../coreTable/CoreTable"
 import { SiteAnalytics } from "./SiteAnalytics"
+import { baseUrl } from "../clientUtils/Util"
 
 declare var window: any
 window.Grapher = Grapher
@@ -51,7 +52,7 @@ window.MultiEmbedderSingleton = MultiEmbedderSingleton
 
 // Note: do a text search of the project for "runSiteFooterScripts" to find the usage. todo: clean that up.
 window.runSiteFooterScripts = () => {
-    runHeaderMenus(BAKED_BASE_URL)
+    runHeaderMenus(baseUrl())
     runBlocks()
     runLightbox()
     runSiteTools()
@@ -64,7 +65,7 @@ window.runSiteFooterScripts = () => {
     }
 }
 
-const analytics = new SiteAnalytics(ENV)
+const analytics = new SiteAnalytics()
 analytics.logPageLoad()
 
 document.querySelector("html")?.classList.add("js")

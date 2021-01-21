@@ -1,7 +1,9 @@
 {
     "extends": "../devTools/tsconfigs/tsconfig.base.json",
+    "include": ["**/*.json", "**.json"],
     "compilerOptions": {
         "outDir": "../itsJustJavascript/settings",
-        "rootDir": "."
+        "rootDir": ".",
+        "resolveJsonModule": true
     }
 }

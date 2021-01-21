@@ -37,7 +37,7 @@ type countrySelectorEvent =
 // Events are discarded if consent not given.
 export class GrapherAnalytics {
     constructor(environment: string = "", version = "1.0.0") {
-        this.isDev = environment === "development"
+        this.isDev = false
         this.version = version
     }
 

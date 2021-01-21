@@ -8,7 +8,6 @@ import { observer } from "mobx-react"
 import { computed } from "mobx"
 import React from "react"
 import { EmbedChart } from "./EmbedChart"
-import { BAKED_GRAPHER_URL } from "../settings/clientSettings"
 import { uniq, capitalize } from "../clientUtils/Util"
 import { Country } from "../clientUtils/countries"
 import { EntityUrlBuilder } from "../grapher/core/EntityUrlBuilder"
@@ -48,7 +47,7 @@ class ChartResult extends React.Component<{
         return (
             <li className="ChartResult">
                 {/* <a href={`${BAKED_GRAPHER_URL}/${hit.slug}`} dangerouslySetInnerHTML={{__html: hit._highlightResult.title.value}}/> */}
-                <a href={`${BAKED_GRAPHER_URL}/${slug}`}>{title}</a>
+                <a href={`/grapher/${slug}`}>{title}</a>
                 {hit.variantName ? (
                     <span className="variantName"> {hit.variantName}</span>
                 ) : undefined}
@@ -196,7 +195,7 @@ export class SearchResults extends React.Component<{
                         ) : undefined}
                         {this.bestChartSlug && (
                             <EmbedChart
-                                src={`${BAKED_GRAPHER_URL}/${this.bestChartSlug}`}
+                                src={`/grapher/${this.bestChartSlug}`}
                             />
                         )}
                         <ul>

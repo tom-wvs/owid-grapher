@@ -6,18 +6,15 @@
 // if a setting is not set in clientSettings.json
 const clientSettings: any = process.env.clientSettings ?? {}
 
-export const ADMIN_SERVER_PORT = clientSettings.ADMIN_SERVER_PORT ?? 3030
-export const ADMIN_SERVER_HOST = clientSettings.ADMIN_SERVER_HOST ?? "localhost"
-export const BAKED_BASE_URL =
-    clientSettings.BAKED_BASE_URL ??
-    `http://${ADMIN_SERVER_HOST}:${ADMIN_SERVER_PORT}`
+import { clientSettingz } from "./clientSettings.json"
 
-export const ENV = clientSettings.ENV ?? "development"
+export const BAKED_BASE_URL =
+    clientSettings.BAKED_BASE_URL ?? "http://localhost:3030"
 export const BAKED_GRAPHER_URL =
     clientSettings.BAKED_GRAPHER_URL ?? `${BAKED_BASE_URL}/grapher`
+
 export const ADMIN_BASE_URL =
-    clientSettings.ADMIN_BASE_URL ??
-    `http://${ADMIN_SERVER_HOST}:${ADMIN_SERVER_PORT}`
+    clientSettings.ADMIN_BASE_URL ?? `http://localhost:3030`
 export const WORDPRESS_URL =
     clientSettings.WORDPRESS_URL ?? "https://owid.cloud"
 

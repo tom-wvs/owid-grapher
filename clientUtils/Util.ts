@@ -997,3 +997,6 @@ export const omitUndefinedValues = <T>(object: T): Partial<T> => {
     }
     return result
 }
+
+export const baseUrl = () =>
+    window.location.protocol + "//" + window.location.host
