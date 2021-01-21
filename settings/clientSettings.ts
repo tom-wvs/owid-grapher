@@ -6,8 +6,6 @@
 // if a setting is not set in clientSettings.json
 const clientSettings: any = process.env.clientSettings ?? {}
 
-import { clientSettingz } from "./clientSettings.json"
-
 export const BAKED_BASE_URL =
     clientSettings.BAKED_BASE_URL ?? "http://localhost:3030"
 export const BAKED_GRAPHER_URL =
