@@ -132,7 +132,7 @@ export class Url {
         return this.update({
             queryStr: queryParamsToStr(
                 omitUndefinedValues({
-                    ...mapValues(this.queryParams, (p) => p.decoded),
+                    ...mapValues(this.queryParams, (p) => p?.decoded),
                     ...queryParams,
                 })
             ),

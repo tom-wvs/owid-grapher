@@ -23,7 +23,7 @@ import {
 } from "../../coreTable/CoreTableConstants"
 import { EntityId, EntityName } from "../../coreTable/OwidTableConstants"
 import { ColorSchemeName } from "../color/ColorConstants"
-import { QueryParams } from "../../clientUtils/url"
+import { QueryParam, QueryParams, RawQueryParams } from "../../clientUtils/url"
 
 // This configuration represents the entire persistent state of a grapher
 // Ideally, this is also all of the interaction state: when a grapher is saved and loaded again
@@ -96,7 +96,7 @@ export interface LegacyGrapherInterface extends GrapherInterface {
     data: any
 }
 
-export interface GrapherQueryParams extends QueryParams {
+export interface GrapherQueryParams extends RawQueryParams {
     tab?: string
     overlay?: string
     stackMode?: string
@@ -109,11 +109,6 @@ export interface GrapherQueryParams extends QueryParams {
     shown?: string
     endpointsOnly?: string
     selection?: string
-}
-
-export interface LegacyGrapherQueryParams extends GrapherQueryParams {
-    year?: string
-    country?: string // deprecated
 }
 
 // Another approach we may want to try is this: https://github.com/mobxjs/serializr

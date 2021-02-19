@@ -8,7 +8,7 @@ export interface QueryParam {
 }
 
 export interface QueryParams {
-    [key: string]: QueryParam
+    [key: string]: QueryParam | undefined
 }
 
 // Deprecated. Use getWindowQueryParams() to get the params from the global URL,
@@ -43,7 +43,15 @@ export const strToQueryParams = (queryStr = ""): QueryParams => {
 }
 
 export const strToDecodedQueryParams = (queryStr = ""): RawQueryParams =>
-    mapValues(strToQueryParams(queryStr), (p) => p.decoded)
+    mapValues(strToQueryParams(queryStr), (p) => p?.decoded)
+
+export const rawQueryParamsToQueryParams = (
+    rawQueryParams: RawQueryParams
+): QueryParams =>
+    mapValues(omitUndefinedValues(rawQueryParams), (p) => ({
+        _original: encodeURIComponent(p),
+        decoded: p,
+    }))
 
 /**
  * Converts an object to a query string.
@@ -56,7 +64,7 @@ export const queryParamsToStr = (params: RawQueryParams) => {
 }
 
 export const setWindowQueryVariable = (key: string, val: string | null) => {
-    const params = mapValues(getWindowQueryParams(), (p) => p.decoded)
+    const params = mapValues(getWindowQueryParams(), (p) => p?.decoded)
 
     if (val === null || val === "") delete params[key]
     else params[key] = val

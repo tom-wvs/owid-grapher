@@ -2,6 +2,8 @@ import { omit } from "../../clientUtils/Util"
 import {
     QueryParams,
     queryParamsToStr,
+    RawQueryParams,
+    rawQueryParamsToQueryParams,
     strToQueryParams,
 } from "../../clientUtils/url"
 import { patchFromQueryParams } from "./ExplorerUrlMigrationUtils"
@@ -45,7 +47,7 @@ const covidIntervalFromLegacyQueryParams = (queryParams: QueryParams) => {
     // Early on, the query string was a few booleans like dailyFreq=true.
     // Now it is a single 'interval'. This transformation is for backward compat.
     if (queryParams.interval) {
-        legacyInterval = queryParams.interval
+        legacyInterval = queryParams.interval.decoded
     } else if (queryParams.totalFreq) {
         legacyInterval = "total"
     } else if (queryParams.dailyFreq) {
@@ -66,7 +68,7 @@ const covidIntervalFromLegacyQueryParams = (queryParams: QueryParams) => {
 const legacyToCurrentCovidQueryParams = (
     queryStr: string,
     baseQueryStr?: string
-): QueryParams => {
+): RawQueryParams => {
     const queryParams = strToQueryParams(queryStr)
     const baseQueryParams = strToQueryParams(baseQueryStr)
 
@@ -88,7 +90,7 @@ const legacyToCurrentCovidQueryParams = (
         "dailyFreq"
     ) as QueryParams
 
-    const explorerQueryParams: QueryParams = {
+    const explorerQueryParams: RawQueryParams = {
         "Metric Dropdown":
             covidMetricFromLegacyQueryParams(queryParams) ??
             covidMetricFromLegacyQueryParams(baseQueryParams),
@@ -101,7 +103,7 @@ const legacyToCurrentCovidQueryParams = (
 
     const patch = patchFromQueryParams({
         ...restQueryParams,
-        ...explorerQueryParams,
+        ...rawQueryParamsToQueryParams(explorerQueryParams),
     })
 
     return {

@@ -72,6 +72,8 @@ import {
     strToQueryParams,
     queryParamsToStr,
     setWindowQueryStr,
+    RawQueryParams,
+    QueryParams,
 } from "../../clientUtils/url"
 import { populationMap } from "../../coreTable/PopulationMap"
 import {
@@ -343,7 +345,7 @@ export class Grapher
         if (!props.table) this.downloadData()
 
         this.populateFromQueryParams(
-            legacyToCurrentGrapherQueryParams(strToQueryParams(props.queryStr))
+            legacyToCurrentGrapherQueryParams(props.queryStr ?? "")
         )
 
         if (this.isEditor) this.ensureValidConfigWhenEditing()
@@ -406,16 +408,16 @@ export class Grapher
             this.setDimensionsFromConfigs(obj.dimensions)
     }
 
-    @action.bound populateFromQueryParams(params: GrapherQueryParams) {
+    @action.bound populateFromQueryParams(params: QueryParams) {
         // Set tab if specified
-        const tab = params.tab
+        const tab = params.tab?.decoded
         if (tab) {
             if (!this.availableTabs.includes(tab as GrapherTabOption))
                 console.error("Unexpected tab: " + tab)
             else this.tab = tab as GrapherTabOption
         }
 
-        const overlay = params.overlay
+        const overlay = params.overlay?.decoded
         if (overlay) {
             if (!this.availableTabs.includes(overlay as GrapherTabOption))
                 console.error("Unexpected overlay: " + overlay)
@@ -426,36 +428,38 @@ export class Grapher
         this.stackMode = (params.stackMode ?? this.stackMode) as StackMode
 
         this.zoomToSelection =
-            params.zoomToSelection === "true" ? true : this.zoomToSelection
+            params.zoomToSelection?.decoded === "true"
+                ? true
+                : this.zoomToSelection
 
         this.minPopulationFilter = params.minPopulationFilter
-            ? parseInt(params.minPopulationFilter)
+            ? parseInt(params.minPopulationFilter.decoded)
             : this.minPopulationFilter
 
         // Axis scale mode
-        const xScaleType = params.xScale
+        const xScaleType = params.xScale?.decoded
         if (xScaleType) {
             if (xScaleType === ScaleType.linear || xScaleType === ScaleType.log)
                 this.xAxis.scaleType = xScaleType
             else console.error("Unexpected xScale: " + xScaleType)
         }
 
-        const yScaleType = params.yScale
+        const yScaleType = params.yScale?.decoded
         if (yScaleType) {
             if (yScaleType === ScaleType.linear || yScaleType === ScaleType.log)
                 this.yAxis.scaleType = yScaleType
             else console.error("Unexpected xScale: " + yScaleType)
         }
 
-        const time = params.time
+        const time = params.time?.decoded
         if (time !== undefined && time !== "")
             this.setTimeFromTimeQueryParam(time)
 
-        const endpointsOnly = params.endpointsOnly
+        const endpointsOnly = params.endpointsOnly?.decoded
         if (endpointsOnly !== undefined)
             this.compareEndPointsOnly = endpointsOnly === "1" ? true : undefined
 
-        const region = params.region
+        const region = params.region?.decoded
         if (region !== undefined)
             this.map.projection = region as MapProjectionName
 
@@ -464,9 +468,7 @@ export class Grapher
             params.selection
         )
             this.selection.setSelectedEntities(
-                typeof params.selection === "string"
-                    ? EntityUrlBuilder.queryParamToEntityNames(params.selection)
-                    : params.selection
+                EntityUrlBuilder.queryParamToEntityNames(params.selection)
             )
     }
 
@@ -2088,7 +2090,7 @@ export class Grapher
     // Autocomputed url params to reflect difference between current grapher state
     // and original config state
     @computed.struct get changedParams() {
-        return deleteRuntimeAndUnchangedProps<GrapherQueryParams>(
+        return deleteRuntimeAndUnchangedProps<RawQueryParams>(
             this.allParams,
             this.authorsVersion.allParams
         )

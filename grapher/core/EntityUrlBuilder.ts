@@ -45,7 +45,9 @@ export class EntityUrlBuilder {
      * Old URLs may contain the selected entities by code or by their full name. In addition, some old urls contain a selection+dimension index combo. This methods
      * migrates those old urls.
      */
-    static migrateLegacyCountryParam(countryParam: QueryParam) {
+    static migrateLegacyCountryParam(countryParam: QueryParam | undefined) {
+        if (countryParam === undefined) return []
+
         const names = this.queryParamToEntityNames(countryParam)
         const newNames: string[] = []
         names.forEach((name) => {
@@ -56,9 +58,9 @@ export class EntityUrlBuilder {
             newNames.push(name)
         })
 
-        return newNames
-            .map((name) => LegacyEntityCodesToEntityNames[name] ?? name)
-            .join(ENTITY_V2_DELIMITER)
+        return newNames.map(
+            (name) => LegacyEntityCodesToEntityNames[name] ?? name
+        )
     }
 }
 

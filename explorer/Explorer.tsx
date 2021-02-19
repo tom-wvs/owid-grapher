@@ -90,6 +90,7 @@ const renderLivePreviewVersion = (props: ExplorerProps) => {
                 {...newProps}
                 uriEncodedPatch={
                     strToQueryParams(window.location.search)[PATCH_QUERY_PARAM]
+                        ?._original
                 }
                 key={Date.now()}
             />,
@@ -149,7 +150,7 @@ export class Explorer
         ReactDOM.render(
             <Explorer
                 {...props}
-                uriEncodedPatch={url.queryParams[PATCH_QUERY_PARAM]}
+                uriEncodedPatch={url.queryParams[PATCH_QUERY_PARAM]?._original}
             />,
             document.getElementById(ExplorerContainerId)
         )

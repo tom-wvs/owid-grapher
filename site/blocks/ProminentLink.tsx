@@ -7,11 +7,13 @@ import {
     queryParamsToStr,
     splitURLintoPathAndQueryString,
     QueryParams,
+    RawQueryParams,
 } from "../../clientUtils/url"
 import {
     union,
     isEmpty,
     getAttributesOfHTMLElement,
+    mapValues,
 } from "../../clientUtils/Util"
 import { EntityUrlBuilder } from "../../grapher/core/EntityUrlBuilder"
 import { SelectionArray } from "../../grapher/selection/SelectionArray"
@@ -45,17 +47,16 @@ class ProminentLink extends React.Component<{
     }
 
     @computed private get originalURLSelectedEntities(): string[] {
-        const originalEntityQueryParam = this.originalURLQueryParams?.[
-            "country"
-        ]
+        const originalEntityQueryParam = this.originalURLQueryParams?.country
 
-        const entityQueryParamExists =
-            originalEntityQueryParam != undefined &&
+        if (
+            originalEntityQueryParam !== undefined &&
             !isEmpty(originalEntityQueryParam)
-
-        return entityQueryParamExists
-            ? EntityUrlBuilder.queryParamToEntityNames(originalEntityQueryParam)
-            : []
+        )
+            return EntityUrlBuilder.queryParamToEntityNames(
+                originalEntityQueryParam
+            )
+        else return []
     }
 
     @computed private get entitiesInGlobalEntitySelection() {
@@ -68,14 +69,14 @@ class ProminentLink extends React.Component<{
             this.entitiesInGlobalEntitySelection
         )
 
-        return EntityUrlBuilder.entityNamesToEncodedQueryParam(newEntityList)
+        return EntityUrlBuilder.entityNamesToQueryParam(newEntityList)
     }
 
-    @computed private get updatedURLParams(): QueryParams {
+    @computed private get updatedURLParams(): RawQueryParams {
         const { originalURLQueryParams, updatedEntityQueryParam } = this
 
         return {
-            ...originalURLQueryParams,
+            ...mapValues(originalURLQueryParams, (p) => p?.decoded),
             ...(!isEmpty(updatedEntityQueryParam) && {
                 country: updatedEntityQueryParam,
             }),

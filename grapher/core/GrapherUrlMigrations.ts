@@ -2,7 +2,6 @@ import { QueryParams } from "../../clientUtils/url"
 import { Url } from "../../urls/Url"
 import { UrlMigration, performUrlMigrations } from "../../urls/UrlMigration"
 import { EntityUrlBuilder } from "./EntityUrlBuilder"
-import { LegacyGrapherQueryParams } from "./GrapherInterface"
 
 export const grapherUrlMigrations: UrlMigration[] = [
     (url) => {
@@ -10,7 +9,7 @@ export const grapherUrlMigrations: UrlMigration[] = [
         if (!year) return url
         return url.updateQueryParams({
             year: undefined,
-            time: time ?? year,
+            time: time?.decoded ?? year?.decoded,
         })
     },
     (url) => {
@@ -18,7 +17,9 @@ export const grapherUrlMigrations: UrlMigration[] = [
         if (!country) return url
         return url.updateQueryParams({
             country: undefined,
-            selection: EntityUrlBuilder.migrateLegacyCountryParam(country),
+            selection: EntityUrlBuilder.entityNamesToQueryParam(
+                EntityUrlBuilder.migrateLegacyCountryParam(country)
+            ),
         })
     },
 ]
@@ -27,8 +28,8 @@ export const legacyToCurrentGrapherUrl = (url: Url) =>
     performUrlMigrations(grapherUrlMigrations, url)
 
 export const legacyToCurrentGrapherQueryParams = (
-    params: LegacyGrapherQueryParams
+    queryStr: string
 ): QueryParams => {
-    const url = Url.fromQueryParams(params)
+    const url = Url.fromQueryStr(queryStr)
     return legacyToCurrentGrapherUrl(url).queryParams
 }

@@ -1,4 +1,4 @@
-import { QueryParams } from "../../clientUtils/url"
+import { QueryParams, RawQueryParams } from "../../clientUtils/url"
 import { omitUndefinedValues } from "../../clientUtils/Util"
 import { EntityUrlBuilder } from "../../grapher/core/EntityUrlBuilder"
 import { Patch } from "../../patch/Patch"

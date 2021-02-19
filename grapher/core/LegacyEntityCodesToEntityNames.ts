@@ -1,4 +1,4 @@
-export const LegacyEntityCodesToEntityNames: any = {
+export const LegacyEntityCodesToEntityNames: Record<string, string> = {
     ABW: "Aruba",
     AFG: "Afghanistan",
     AGO: "Angola",
