@@ -24,6 +24,7 @@ import isString from "lodash/isString"
 import keyBy from "lodash/keyBy"
 import map from "lodash/map"
 import mapKeys from "lodash/mapKeys"
+import mapValues from "lodash/mapValues"
 import max from "lodash/max"
 import maxBy from "lodash/maxBy"
 import memoize from "lodash/memoize"
@@ -81,6 +82,7 @@ export {
     keyBy,
     map,
     mapKeys,
+    mapValues,
     max,
     maxBy,
     memoize,

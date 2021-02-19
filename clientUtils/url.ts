@@ -1,7 +1,12 @@
-import { isEmpty, omitUndefinedValues } from "./Util"
+import { isEmpty, mapValues, omitUndefinedValues } from "./Util"
+
+export interface QueryParam {
+    _encoded: string
+    decoded: string
+}
 
 export interface QueryParams {
-    [key: string]: string | undefined
+    [key: string]: QueryParam
 }
 
 // Deprecated. Use getWindowQueryParams() to get the params from the global URL,
@@ -17,22 +22,43 @@ export const getWindowQueryParams = (): QueryParams =>
  * Handles URI-decoding of the values.
  */
 export const strToQueryParams = (queryStr = ""): QueryParams => {
-    const queryParams = new URLSearchParams(queryStr)
-    return Object.fromEntries(queryParams)
+    // we cannot use URLSearchParams here since we want to keep both encoded and decoded version of param.
+
+    if (queryStr[0] === "?") queryStr = queryStr.substring(1)
+
+    const querySplit = queryStr.split("&").filter((s) => !isEmpty(s))
+    const params: QueryParams = {}
+
+    for (const param of querySplit) {
+        const [key, value] = param.split("=", 2)
+        if (value != undefined)
+            params[key] = {
+                _encoded: value,
+                decoded: decodeURIComponent(value.replace(/\+/g, "%20")),
+            }
+    }
+    return params
 }
+
+export const strToDecodedQueryParams = (
+    queryStr = ""
+): Record<string, string> =>
+    mapValues(strToQueryParams(queryStr), (p) => p.decoded)
 
 /**
  * Converts an object to a query string.
  * Expects the input object to not be encoded already, and handles the URI-encoding of the values.
  */
-export const queryParamsToStr = (params: QueryParams) => {
+export const queryParamsToStr = (
+    params: Record<string, string | undefined>
+) => {
     const queryParams = new URLSearchParams(omitUndefinedValues(params))
     const newQueryStr = queryParams.toString()
     return newQueryStr.length ? `?${newQueryStr}` : ""
 }
 
 export const setWindowQueryVariable = (key: string, val: string | null) => {
-    const params = getWindowQueryParams()
+    const params = mapValues(getWindowQueryParams(), (p) => p.decoded)
 
     if (val === null || val === "") delete params[key]
     else params[key] = val
