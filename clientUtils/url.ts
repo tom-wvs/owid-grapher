@@ -3,7 +3,7 @@ import { isEmpty, mapValues, omitUndefinedValues } from "./Util"
 export type RawQueryParams = Record<string, string | undefined>
 
 export interface QueryParam {
-    _encoded: string
+    _original: string
     decoded: string
 }
 
@@ -35,7 +35,7 @@ export const strToQueryParams = (queryStr = ""): QueryParams => {
         const [key, value] = param.split("=", 2)
         if (value != undefined)
             params[key] = {
-                _encoded: value,
+                _original: value,
                 decoded: decodeURIComponent(value.replace(/\+/g, "%20")),
             }
     }

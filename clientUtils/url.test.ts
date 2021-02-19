@@ -6,21 +6,21 @@ import { queryParamsToStr, strToQueryParams } from "./url"
 const testCases = [
     {
         queryStr: "?foo=bar",
-        params: { foo: { _encoded: "bar", decoded: "bar" } },
+        params: { foo: { _original: "bar", decoded: "bar" } },
     },
     {
         queryStr: "?foo=bar&baz=false&bar=0",
         params: {
-            foo: { _encoded: "bar", decoded: "bar" },
-            baz: { _encoded: "false", decoded: "false" },
-            bar: { _encoded: "0", decoded: "0" },
+            foo: { _original: "bar", decoded: "bar" },
+            baz: { _original: "false", decoded: "false" },
+            bar: { _original: "0", decoded: "0" },
         },
     },
     {
         queryStr: "?country=East+Asia+%26+Pacific",
         params: {
             country: {
-                _encoded: "East+Asia+%26+Pacific",
+                _original: "East+Asia+%26+Pacific",
                 decoded: "East Asia & Pacific",
             },
         },
@@ -29,7 +29,7 @@ const testCases = [
         queryStr: "?country=East%20Asia%20%26%20Pacific",
         params: {
             country: {
-                _encoded: "East%20Asia%20%26%20Pacific",
+                _original: "East%20Asia%20%26%20Pacific",
                 decoded: "East Asia & Pacific",
             },
         },
@@ -37,9 +37,9 @@ const testCases = [
     },
     {
         queryStr: "?foo=%2526",
-        params: { foo: { _encoded: "%2526", decoded: "%26" } },
+        params: { foo: { _original: "%2526", decoded: "%26" } },
     },
-    { queryStr: "?foo=", params: { foo: { _encoded: "", decoded: "" } } },
+    { queryStr: "?foo=", params: { foo: { _original: "", decoded: "" } } },
     {
         queryStr: "?foo",
         params: {},
