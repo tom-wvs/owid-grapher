@@ -1,5 +1,7 @@
 import { isEmpty, mapValues, omitUndefinedValues } from "./Util"
 
+export type RawQueryParams = Record<string, string | undefined>
+
 export interface QueryParam {
     _encoded: string
     decoded: string
@@ -40,18 +42,14 @@ export const strToQueryParams = (queryStr = ""): QueryParams => {
     return params
 }
 
-export const strToDecodedQueryParams = (
-    queryStr = ""
-): Record<string, string> =>
+export const strToDecodedQueryParams = (queryStr = ""): RawQueryParams =>
     mapValues(strToQueryParams(queryStr), (p) => p.decoded)
 
 /**
  * Converts an object to a query string.
  * Expects the input object to not be encoded already, and handles the URI-encoding of the values.
  */
-export const queryParamsToStr = (
-    params: Record<string, string | undefined>
-) => {
+export const queryParamsToStr = (params: RawQueryParams) => {
     const queryParams = new URLSearchParams(omitUndefinedValues(params))
     const newQueryStr = queryParams.toString()
     return newQueryStr.length ? `?${newQueryStr}` : ""
