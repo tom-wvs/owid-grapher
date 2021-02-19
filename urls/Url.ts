@@ -3,9 +3,14 @@ import urlParseLib from "url-parse"
 import {
     QueryParams,
     queryParamsToStr,
+    RawQueryParams,
     strToQueryParams,
 } from "../clientUtils/url"
-import { excludeUndefined, omitUndefinedValues } from "../clientUtils/Util"
+import {
+    excludeUndefined,
+    omitUndefinedValues,
+    mapValues,
+} from "../clientUtils/Util"
 
 const parseUrl = (url: string) => {
     const parsed = urlParseLib(url, {})
@@ -57,7 +62,7 @@ export class Url {
         })
     }
 
-    static fromQueryParams(queryParams: QueryParams) {
+    static fromQueryParams(queryParams: RawQueryParams) {
         return new Url({
             queryStr: queryParamsToStr(queryParams),
         })
@@ -116,18 +121,18 @@ export class Url {
         })
     }
 
-    setQueryParams(queryParams: QueryParams) {
+    setQueryParams(queryParams: RawQueryParams) {
         return new Url({
             ...this.props,
             queryStr: queryParamsToStr(queryParams),
         })
     }
 
-    updateQueryParams(queryParams: QueryParams) {
+    updateQueryParams(queryParams: RawQueryParams) {
         return this.update({
             queryStr: queryParamsToStr(
                 omitUndefinedValues({
-                    ...this.queryParams,
+                    ...mapValues(this.queryParams, (p) => p.decoded),
                     ...queryParams,
                 })
             ),
